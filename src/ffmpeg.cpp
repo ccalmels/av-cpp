@@ -278,6 +278,17 @@ int packet::stream_index() const
 	return p->stream_index;
 }
 
+void packet::stream_index(int index)
+{
+	p->stream_index = index;
+}
+
+void packet::add_delta_pts(int64_t delta)
+{
+	p->pts += delta;
+	p->dts += delta;
+}
+
 frame::frame() { f = av_frame_alloc(); }
 frame::~frame() { av_frame_free(&f); }
 

@@ -71,9 +71,8 @@ static void read_stream_delta(av::input &in, packet_queue &q, int stream_index,
 		if (!(in >> p))
 			return;
 
-		p.p->pts += delta;
-		p.p->dts += delta;
-		p.p->stream_index = stream_index;
+		p.add_delta_pts(delta);
+		p.stream_index(stream_index);
 
 		q.release(p);
 	}

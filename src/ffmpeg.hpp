@@ -7,7 +7,8 @@ extern "C" {
 
 namespace av {
 
-struct packet {
+class packet {
+public:
 	packet();
 	~packet();
 
@@ -18,7 +19,15 @@ struct packet {
 	packet &operator=(packet &&o);
 
 	int stream_index() const;
+	void stream_index(int index);
 
+	void add_delta_pts(int64_t delta);
+
+	friend class input;
+	friend class output;
+	friend class encoder;
+	friend class decoder;
+private:
 	AVPacket *p;
 };
 
