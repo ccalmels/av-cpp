@@ -22,12 +22,20 @@ library_video_test = executable('library_video_test', 'src/video_test.cpp',
 test('library video test', library_video_test)
 
 # examples
+
+threads_dep = dependency('threads')
+
 executable('rtsp_muxer', 'example/rtsp_muxer.cpp',
 	   include_directories: include_directories('src'),
-	   dependencies: [ deps,  dependency('threads')],
+	   dependencies: [ deps,  threads_dep ],
 	   link_with: lib)
 
 executable('pcm_to_mp3', 'example/pcm_to_mp3.cpp',
 	   include_directories: include_directories('src'),
 	   dependencies: deps,
+	   link_with: lib)
+
+executable('multi_stream', 'example/multi_stream.cpp',
+	   include_directories: include_directories('src'),
+	   dependencies: [ deps,  threads_dep ],
 	   link_with: lib)
