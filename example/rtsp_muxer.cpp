@@ -8,56 +8,7 @@
 #include <iostream>
 
 #include "ffmpeg.hpp"
-
-struct packet_queue {
-	av::packet acquire() {
-		std::lock_guard<std::mutex> l(m);
-
-		if (!empty_packets.empty()) {
-			av::packet p = empty_packets.back();
-			empty_packets.pop_back();
-			return p;
-		}
-
-		return av::packet();
-	}
-
-	void release(av::packet &p) {
-		{
-			std::lock_guard<std::mutex> l(m);
-
-			filled_packets.push_back(p);
-		}
-		cv.notify_one();
-	}
-
-	av::packet dequeue() {
-		std::unique_lock<std::mutex> l(m);
-		av::packet p;
-
-		while (filled_packets.empty())
-			cv.wait(l);
-
-		p = filled_packets.front();
-		filled_packets.pop_front();
-
-		l.unlock();
-
-		return p;
-	}
-
-	void enqueue(av::packet p) {
-		std::lock_guard<std::mutex> l(m);
-
-		empty_packets.push_back(p);
-	}
-
-
-	std::mutex m;
-	std::condition_variable cv;
-	std::list<av::packet> filled_packets;
-	std::list<av::packet> empty_packets;
-};
+#include "packet_queue.hpp"
 
 static void read_stream_delta(av::input &in, packet_queue &q, int stream_index,
 			      int64_t delta)
@@ -65,7 +16,7 @@ static void read_stream_delta(av::input &in, packet_queue &q, int stream_index,
         std::cerr << "got delta: " << delta << " on stream "
 		  << stream_index << std::endl;
 
-	while (1) {
+	while (!q.is_closed()) {
 		av::packet p = q.acquire();
 
 		if (!(in >> p))
@@ -149,6 +100,8 @@ int main(int argc, char *argv[])
 
 		q.enqueue(p);
 	}
+
+	q.close();
 
 	for (size_t i = 0; i < reads.size(); i++)
                 reads[i].join();
