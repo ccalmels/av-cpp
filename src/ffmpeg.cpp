@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include <cassert>
+#include <map>
 
 extern "C" {
 #include <libavutil/opt.h>
@@ -75,62 +76,6 @@ static AVFormatContext *ffmpeg_input_format_context(const std::string &uri,
 	return fmt_ctx;
 }
 
-static enum AVPixelFormat hw_pix_fmt = AV_PIX_FMT_NONE;
-static enum AVPixelFormat get_hw_format(AVCodecContext *ctx,
-					const enum AVPixelFormat *pix_fmts)
-{
-	const enum AVPixelFormat *p;
-
-	for (p = pix_fmts; *p != -1; p++)
-		if (*p == hw_pix_fmt)
-			return *p;
-
-	std::cerr << "Failed to get HW surface format." << std::endl;
-	return AV_PIX_FMT_NONE;
-}
-
-static AVBufferRef *ffmpeg_hw_context(const std::string &name,
-				      const AVCodec *codec)
-{
-	AVBufferRef *hw_device_ctx = nullptr;
-	const AVCodecHWConfig *config;
-	enum AVHWDeviceType type;
-
-	if (name.empty())
-		return nullptr;
-
-	type = av_hwdevice_find_type_by_name(name.c_str());
-	if (type == AV_HWDEVICE_TYPE_NONE) {
-		std::cerr << name << " hwdevice not supported" << std::endl;
-		return nullptr;
-	}
-
-	for (int i = 0;; i++) {
-		config = avcodec_get_hw_config(codec, i);
-		if (!config) {
-			std::cerr << "decoder " << codec->name
-				  << " does not support device type "
-				  << av_hwdevice_get_type_name(type)
-				  << std::endl;
-			return nullptr;
-		}
-		if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX &&
-		    config->device_type == type) {
-			hw_pix_fmt = config->pix_fmt;
-			break;
-		}
-	}
-
-	if (av_hwdevice_ctx_create(&hw_device_ctx, type, nullptr, nullptr, 0) < 0) {
-		std::cerr << "fail to create specified HW device" << std::endl;
-		return nullptr;
-	}
-
-	std::cerr << "Using " << av_hwdevice_get_type_name(type)
-		  << " HW decoding" << std::endl;
-	return hw_device_ctx;
-}
-
 static AVFormatContext *ffmpeg_output_format_context(const std::string &uri)
 {
 	AVFormatContext *format_ctx = nullptr;
@@ -153,8 +98,67 @@ static AVFormatContext *ffmpeg_output_format_context(const std::string &uri)
 	return format_ctx;
 }
 
+static AVBufferRef *ffmpeg_hw_context(enum AVHWDeviceType type,
+				      const std::string &device)
+{
+	AVBufferRef *hw_device_ctx = nullptr;
+	const char *device_name = nullptr;
+
+	if (!device.empty())
+		device_name = device.c_str();
+
+	if (av_hwdevice_ctx_create(&hw_device_ctx, type, device_name, nullptr, 0) < 0) {
+		std::cerr << "fail to create " << av_hwdevice_get_type_name(type)
+			  << " HW device" << std::endl;
+		return nullptr;
+	}
+
+	std::cerr << "Using " << av_hwdevice_get_type_name(type)
+		  << " HW decoding" << std::endl;
+	return hw_device_ctx;
+}
+
+static void ffmpeg_hw_device_setup(AVCodecContext *ctx,
+				   AVBufferRef *hw_device_ctx,
+				   enum AVHWDeviceType type)
+{
+	static std::map<AVCodecContext*, enum AVPixelFormat> hw_maps;
+	const AVCodec *codec = ctx->codec;
+
+	for (int i = 0;; i++) {
+		const AVCodecHWConfig *config = avcodec_get_hw_config(codec, i);
+		if (!config) {
+			std::cerr << "decoder " << codec->name
+				  << " does not support device type "
+				  << av_hwdevice_get_type_name(type)
+				  << std::endl;
+			return;
+		}
+		if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX &&
+		    config->device_type == type) {
+			hw_maps[ctx] = config->pix_fmt;
+			break;
+		}
+	}
+
+	ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+	ctx->get_format =
+		[](AVCodecContext *ctx,
+		   const enum AVPixelFormat *pix_fmts) {
+			const enum AVPixelFormat *p;
+
+			for (p = pix_fmts; *p != -1; p++)
+				if (*p == hw_maps[ctx])
+					return *p;
+
+			std::cerr << "Failed to get HW surface format." << std::endl;
+			return AV_PIX_FMT_NONE;
+		};
+}
+
 static AVCodecContext *ffmpeg_decoder_context(const AVCodecParameters* params,
-					      const std::string &hwaccel,
+					      AVBufferRef *hw_device_ctx,
+					      enum AVHWDeviceType type,
 					      const std::string &options)
 {
 	AVCodec *codec = nullptr;
@@ -174,9 +178,8 @@ static AVCodecContext *ffmpeg_decoder_context(const AVCodecParameters* params,
 	if (ret < 0)
 		goto free_context;
 
-	codec_ctx->hw_device_ctx = ffmpeg_hw_context(hwaccel, codec);
-	if (codec_ctx->hw_device_ctx)
-		codec_ctx->get_format = get_hw_format;
+	if (hw_device_ctx)
+		ffmpeg_hw_device_setup(codec_ctx, hw_device_ctx, type);
 
 	opts = dictionary(options);
 	av_dict_set(&opts, "refcounted_frames", "1", 0);
@@ -319,6 +322,63 @@ frame &frame::operator=(frame &&o)
 	return *this;
 }
 
+hw_device::hw_device(const std::string &name, const std::string &device) {
+	type = av_hwdevice_find_type_by_name(name.c_str());
+	if (type == AV_HWDEVICE_TYPE_NONE) {
+		std::cerr << name << " hwdevice not supported" << std::endl;
+		ctx = nullptr;
+	} else
+		ctx = ffmpeg_hw_context(type, device);
+}
+
+hw_device::~hw_device() {
+	drop();
+}
+
+hw_device::hw_device(const hw_device &o) {
+	if (o.ctx)
+		ctx = av_buffer_ref(o.ctx);
+	else
+		ctx = nullptr;
+	type = o.type;
+}
+
+hw_device &hw_device::operator=(const hw_device &o) {
+	drop();
+	if (o.ctx)
+		ctx = av_buffer_ref(o.ctx);
+	else
+		ctx = nullptr;
+	type = o.type;
+	return *this;
+}
+
+hw_device::hw_device(hw_device &&o) {
+	ctx = o.ctx;
+	type = o.type;
+
+	o.ctx = nullptr;
+}
+
+hw_device &hw_device::operator=(hw_device &&o) {
+	if (ctx != o.ctx) {
+		drop();
+
+		ctx = o.ctx;
+		type = o.type;
+
+		o.ctx = nullptr;
+	}
+	return *this;
+}
+
+bool hw_device::operator!() { return ctx == nullptr; }
+
+void hw_device::drop() {
+	if (ctx)
+		av_buffer_unref(&ctx);
+}
+
 codec::codec() : ctx(nullptr) {}
 codec::~codec() { drop(); }
 
@@ -443,11 +503,11 @@ int input::get_audio_index(int id) const
 
 decoder input::get(int index, const std::string &options)
 {
-	return get_hw("", index, options);
+	return get(hw_device(), index, options);
 }
 
-decoder input::get_hw(const std::string &hwaccel, int index,
-		      const std::string &options)
+decoder input::get(const hw_device &device, int index,
+		   const std::string &options)
 {
 	decoder dec;
 	AVCodecParameters *par = nullptr;
@@ -456,7 +516,7 @@ decoder input::get_hw(const std::string &hwaccel, int index,
 
 	par = ctx->streams[index]->codecpar;
 
-	dec.ctx = ffmpeg_decoder_context(par, hwaccel, options);
+	dec.ctx = ffmpeg_decoder_context(par, device.ctx, device.type, options);
 
 	return dec;
 }

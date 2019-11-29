@@ -45,6 +45,28 @@ struct frame {
 	AVFrame *f;
 };
 
+class hw_device {
+public:
+	hw_device() : ctx(nullptr) {}
+	hw_device(const std::string &name, const std::string &device = "");
+	~hw_device();
+
+	hw_device(const hw_device &o);
+	hw_device &operator=(const hw_device &o);
+
+	hw_device(hw_device &&o);
+	hw_device &operator=(hw_device &&o);
+
+	bool operator!();
+
+	friend class input;
+private:
+	void drop();
+
+	AVBufferRef *ctx;
+	enum AVHWDeviceType type;
+};
+
 class codec {
 public:
 	codec();
@@ -94,8 +116,8 @@ public:
 	int get_audio_index(int id) const;
 
 	decoder get(int index, const std::string &options = "");
-	decoder get_hw(const std::string &hwaccel, int index,
-		       const std::string &options = "");
+	decoder get(const hw_device &device,
+		    int index, const std::string &options = "");
 
 	int64_t start_time_realtime() const;
 	AVRational time_base(int index) const;

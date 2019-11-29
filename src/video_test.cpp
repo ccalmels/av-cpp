@@ -66,7 +66,9 @@ static bool generate_video(const std::string &name,
 	return true;
 }
 
-static bool decode_video(const std::string &name)
+static av::hw_device no_hw_accel;
+static bool decode_video(const std::string &name,
+			 av::hw_device &device = no_hw_accel)
 {
 	av::input video;
 	av::decoder stream0_decoder;
@@ -78,7 +80,7 @@ static bool decode_video(const std::string &name)
 		return false;
 	}
 
-	stream0_decoder = video.get(0);
+	stream0_decoder = video.get(device, 0);
 	if (!stream0_decoder) {
 		std::cerr << "Can't create decoder for " << name << std::endl;
 		return false;
@@ -107,6 +109,14 @@ int main(int argc, char *argv[])
 		return -1;
 
 	if (!decode_video("/tmp/test.mkv"))
+		return -1;
+
+	av::hw_device hw_accel("cuda");
+
+	if (!hw_accel)
+		hw_accel = av::hw_device("vaapi");
+
+	if (!decode_video("/tmp/test.mkv", hw_accel))
 		return -1;
 
 	return 0;
