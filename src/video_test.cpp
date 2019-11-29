@@ -103,7 +103,7 @@ static bool decode_video(const std::string &name)
 
 int main(int argc, char *argv[])
 {
-	if (!generate_video("/tmp/test.mkv", "libx265"))
+	if (!generate_video("/tmp/test.mkv", "libx264"))
 		return -1;
 
 	if (!decode_video("/tmp/test.mkv"))
