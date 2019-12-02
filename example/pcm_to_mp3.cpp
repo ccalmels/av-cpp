@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 	if (!mp3_encoder)
 		return -1;
 
-	av::packet p, p2;
+	av::packet p;
 	av::frame f;
 
 	while (pcm >> p) {
@@ -32,8 +32,8 @@ int main(int argc, char *argv[])
 			if (!(mp3_encoder << f))
 				return -1;
 
-			while (mp3_encoder >> p2)
-				mp3 << p2;
+			while (mp3_encoder >> p)
+				mp3 << p;
 		}
 	}
 	return 0;
