@@ -1,9 +1,17 @@
+#include <iostream>
 #include "ffmpeg.hpp"
 
 int main(int argc, char *argv[])
 {
 	av::input pcm;
 	av::output mp3;
+
+	if (argc < 3) {
+		std::cerr << "Usage: " << argv[0]
+			  << " <pcm_32000_1channel_file> <mp3_file>"
+			  << std::endl;
+		return -1;
+	}
 
 	if (!pcm.open_format(argv[1], "s16le", "sample_rate=32000"))
 		return -1;

@@ -29,6 +29,12 @@ int main(int argc, char *argv[])
 	std::vector<packet_queue*> queues;
 	av::packet p;
 
+	if (argc < 2) {
+		std::cerr << "Usage: " << argv[0] << " <multi_stream_video>"
+			  << std::endl;
+		return -1;
+	}
+
 	if (!multi.open(argv[1]))
 		return -1;
 

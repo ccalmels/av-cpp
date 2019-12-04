@@ -63,6 +63,12 @@ static void read_stream(av::input &in, packet_queue &q, int stream_index)
 
 int main(int argc, char *argv[])
 {
+	if (argc < 3) {
+		std::cerr << "Usage: " << argv[0] << " <output> <rtsp_uri>..."
+			  << std::endl;
+		return -1;
+	}
+
 	av::output output;
 	std::vector<av::input> inputs(argc - 2);
 	std::vector<std::thread> reads(argc - 2);
