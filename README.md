@@ -6,7 +6,7 @@ Simple C++ API for ffmpeg libraries
 Dependencies:
 
 ```console
-# apt install libavformat-dev libavcodec-dev libswresample-dev libavutil-dev
+# apt install libavformat-dev libavcodec-dev libswresample-dev libavutil-dev catch
 ```
 
 Meson build system is used:

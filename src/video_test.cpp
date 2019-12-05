@@ -3,6 +3,9 @@
 #include <iostream>
 #include "ffmpeg.hpp"
 
+#define CATCH_CONFIG_MAIN
+#include "catch.hpp"
+
 /*
  * code borrow from ffmpeg documentation/example
  */
@@ -103,21 +106,26 @@ static bool decode_video(const std::string &name,
 	return true;
 }
 
-int main(int argc, char *argv[])
+TEST_CASE("Encoding video using software encoder", "[encoding]")
 {
-	if (!generate_video("/tmp/test.mkv", "libx264"))
-		return -1;
+	REQUIRE(generate_video("/tmp/test.x264.mkv", "libx264") == true);
+	REQUIRE(generate_video("/tmp/test.x265.mkv", "libx265") == true);
+}
 
-	if (!decode_video("/tmp/test.mkv"))
-		return -1;
+TEST_CASE("Decoding video", "[decoding]")
+{
+	REQUIRE(decode_video("/tmp/test.x264.mkv") == true);
+	REQUIRE(decode_video("/tmp/test.x265.mkv") == true);
+}
 
+TEST_CASE("Decoding video using HW", "[decoding][hwaccel]")
+{
 	av::hw_device hw_accel("cuda");
-
 	if (!hw_accel)
 		hw_accel = av::hw_device("vaapi");
 
-	if (!decode_video("/tmp/test.mkv", hw_accel))
-		return -1;
+	if (!hw_accel)
+		return;
 
-	return 0;
+	REQUIRE(decode_video("/tmp/test.x264.mkv", hw_accel) == true);
 }
