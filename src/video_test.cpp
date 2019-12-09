@@ -66,6 +66,10 @@ static bool generate_video(const std::string &name,
 			generated << p;
 	}
 
+	encode_video.flush();
+	while (encode_video >> p)
+		generated << p;
+
 	return true;
 }
 
@@ -89,6 +93,7 @@ static bool decode_video(const std::string &name,
 		return false;
 	}
 
+	int count = 0;
 	while (video >> p) {
 		if (p.stream_index() != 0)
 			continue;
@@ -100,10 +105,17 @@ static bool decode_video(const std::string &name,
 
 		while (stream0_decoder >> f) {
 			std::cerr << "got frame: " << f.f->pts << std::endl;
+			count++;
 		}
 	}
 
-	return true;
+	stream0_decoder.flush();
+	while (stream0_decoder >> f) {
+		std::cerr << "got frame: " << f.f->pts << std::endl;
+		count++;
+	}
+
+	return (count == 100);
 }
 
 TEST_CASE("Encoding video using software encoder", "[encoding]")
