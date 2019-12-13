@@ -638,10 +638,12 @@ encoder output::add_stream(const std::string &codec, const std::string &options)
 		codec, options, stream->codecpar,
 		ctx->oformat->flags & AVFMT_GLOBALHEADER);
 
-	enc.stream_index = stream->id = ctx->nb_streams - 1;
+	if (enc.ctx) {
+		enc.stream_index = stream->id = ctx->nb_streams - 1;
 
-	time_bases.resize(ctx->nb_streams);
-	time_bases[stream->id] = enc.ctx->time_base;
+		time_bases.resize(ctx->nb_streams);
+		time_bases[stream->id] = enc.ctx->time_base;
+	}
 	return enc;
 }
 
