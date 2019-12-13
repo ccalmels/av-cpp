@@ -468,10 +468,8 @@ bool input::open_format(const std::string &uri, const std::string &format,
 	close();
 
 	ctx = ffmpeg_input_format_context(uri, format, options);
-	if (!ctx)
-		return false;
 
-	return true;
+	return (ctx != nullptr);
 }
 
 
