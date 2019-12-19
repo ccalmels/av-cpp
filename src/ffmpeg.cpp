@@ -322,7 +322,8 @@ frame &frame::operator=(frame &&o)
 	return *this;
 }
 
-hw_device::hw_device(const std::string &name, const std::string &device) {
+hw_device::hw_device(const std::string &name, const std::string &device)
+{
 	type = av_hwdevice_find_type_by_name(name.c_str());
 	if (type == AV_HWDEVICE_TYPE_NONE) {
 		std::cerr << name << " hwdevice not supported" << std::endl;
@@ -331,11 +332,13 @@ hw_device::hw_device(const std::string &name, const std::string &device) {
 		ctx = ffmpeg_hw_context(type, device);
 }
 
-hw_device::~hw_device() {
+hw_device::~hw_device()
+{
 	drop();
 }
 
-hw_device::hw_device(const hw_device &o) {
+hw_device::hw_device(const hw_device &o)
+{
 	if (o.ctx)
 		ctx = av_buffer_ref(o.ctx);
 	else
@@ -343,7 +346,8 @@ hw_device::hw_device(const hw_device &o) {
 	type = o.type;
 }
 
-hw_device &hw_device::operator=(const hw_device &o) {
+hw_device &hw_device::operator=(const hw_device &o)
+{
 	drop();
 	if (o.ctx)
 		ctx = av_buffer_ref(o.ctx);
@@ -353,14 +357,16 @@ hw_device &hw_device::operator=(const hw_device &o) {
 	return *this;
 }
 
-hw_device::hw_device(hw_device &&o) {
+hw_device::hw_device(hw_device &&o)
+{
 	ctx = o.ctx;
 	type = o.type;
 
 	o.ctx = nullptr;
 }
 
-hw_device &hw_device::operator=(hw_device &&o) {
+hw_device &hw_device::operator=(hw_device &&o)
+{
 	if (ctx != o.ctx) {
 		drop();
 
@@ -432,11 +438,13 @@ bool decoder::receive(AVFrame *f)
 	return !(ret < 0);
 }
 
-bool decoder::operator<<(const packet &p) {
+bool decoder::operator<<(const packet &p)
+{
 	return send(p.p);
 }
 
-bool decoder::operator>>(frame &f) {
+bool decoder::operator>>(frame &f)
+{
 	av_frame_unref(f.f);
 	return receive(f.f);
 }
