@@ -32,6 +32,7 @@ static AVFormatContext *ffmpeg_input_format_context(const std::string &uri,
 	AVFormatContext *fmt_ctx = nullptr;
 	AVInputFormat *ifmt = nullptr;
 	AVDictionary *opts = nullptr;
+	int ret;
 
 	if (!format.empty()) {
 		ifmt = av_find_input_format(format.c_str());
@@ -44,13 +45,15 @@ static AVFormatContext *ffmpeg_input_format_context(const std::string &uri,
 
 	dictionary(&opts, options);
 
-	if (avformat_open_input(&fmt_ctx, uri.c_str(), ifmt, &opts) != 0) {
+	ret = avformat_open_input(&fmt_ctx, uri.c_str(), ifmt, &opts);
+
+	free_dictionary(opts);
+
+	if (ret) {
 		std::cerr << "Cannot open input file '" << uri << "'"
 			  << std::endl;
 		return nullptr;
 	}
-
-	free_dictionary(opts);
 
 	if (avformat_find_stream_info(fmt_ctx, NULL) < 0) {
 		std::cerr << "Cannot find input stream information" << std::endl;
