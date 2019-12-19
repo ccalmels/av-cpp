@@ -39,3 +39,8 @@ executable('multi_stream', 'example/multi_stream.cpp',
 	   include_directories: include_directories('src'),
 	   dependencies: [ deps,  threads_dep ],
 	   link_with: lib)
+
+executable('transcode', 'example/transcode.cpp',
+	   include_directories: include_directories('src'),
+	   dependencies: deps,
+	   link_with: lib)
