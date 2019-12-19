@@ -584,7 +584,8 @@ int input::read(AVPacket *packet)
 	return av_read_frame(ctx, packet);
 }
 
-bool input::operator>>(packet &p) {
+bool input::operator>>(packet &p)
+{
 	av_packet_unref(p.p);
 	return !(read(p.p) < 0);
 }
