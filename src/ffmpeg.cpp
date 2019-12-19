@@ -8,34 +8,20 @@ extern "C" {
 #include <libavutil/opt.h>
 }
 
-static AVDictionary *dictionary(const std::string &options)
+static void dictionary(AVDictionary **dict, const std::string &options)
 {
-	AVDictionary *dict = nullptr;
-	std::istringstream iss(options);
-	std::string option, key, value;
-
-	while (getline(iss, option, ':')) {
-		auto equal = option.find('=');
-
-		if (equal != std::string::npos) {
-			key = option.substr(0, equal);
-			value = option.erase(0, equal + 1);
-
-			av_dict_set(&dict, key.c_str(), value.c_str(), 0);
-		}
-	}
-
-	return dict;
+	av_dict_parse_string(dict, options.c_str(), "=", ":", 0);
 }
 
 static void free_dictionary(AVDictionary *dict)
 {
-	AVDictionaryEntry *t = nullptr;
+	char *buf = nullptr;
 
-	while ((t = av_dict_get(dict, "", t, AV_DICT_IGNORE_SUFFIX)))
-		std::cerr << "Warning: option '" << t->key << "' not used"
-			  << std::endl;
+	av_dict_get_string(dict, &buf, '=', ':');
 
+	std::cerr << "Warning: unused options: " << buf << std::endl;
+
+	av_freep(&buf);
 	av_dict_free(&dict);
 }
 
@@ -56,7 +42,7 @@ static AVFormatContext *ffmpeg_input_format_context(const std::string &uri,
 		}
 	}
 
-	opts = dictionary(options);
+	dictionary(&opts, options);
 
 	if (avformat_open_input(&fmt_ctx, uri.c_str(), ifmt, &opts) != 0) {
 		std::cerr << "Cannot open input file '" << uri << "'"
@@ -223,7 +209,7 @@ static AVCodecContext *ffmpeg_decoder_context(const std::string &codec_name,
 	if (hw_device_ctx)
 		ffmpeg_hw_device_setup(codec_ctx, hw_device_ctx, type);
 
-	opts = dictionary(options);
+	dictionary(&opts, options);
 	av_dict_set(&opts, "refcounted_frames", "1", 0);
 
 	ret = avcodec_open2(codec_ctx, codec, &opts);
@@ -259,7 +245,7 @@ static AVCodecContext *ffmpeg_encoder_context(const std::string &codec_name,
 	if (!codec_ctx)
 		return nullptr;
 
-	opts = dictionary(options);
+	dictionary(&opts, options);
 
 	av_opt_set_dict(codec_ctx, &opts);
 	av_opt_set_dict(codec_ctx->priv_data, &opts);
