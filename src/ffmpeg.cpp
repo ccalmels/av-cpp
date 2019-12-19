@@ -433,7 +433,7 @@ hw_device::hw_device(const std::string &name, const std::string &device)
 
 hw_device::~hw_device()
 {
-	drop();
+	av_buffer_unref(&ctx);
 }
 
 hw_device::hw_device(const hw_device &o)
@@ -447,7 +447,7 @@ hw_device::hw_device(const hw_device &o)
 
 hw_device &hw_device::operator=(const hw_device &o)
 {
-	drop();
+	av_buffer_unref(&ctx);
 	if (o.ctx)
 		ctx = av_buffer_ref(o.ctx);
 	else
@@ -467,7 +467,7 @@ hw_device::hw_device(hw_device &&o)
 hw_device &hw_device::operator=(hw_device &&o)
 {
 	if (ctx != o.ctx) {
-		drop();
+		av_buffer_unref(&ctx);
 
 		ctx = o.ctx;
 		type = o.type;
@@ -485,12 +485,6 @@ hw_frames hw_device::get_hw_frames(AVPixelFormat sw_format, int width, int heigh
 
 	ret.ctx = ffmpeg_hw_frames_ctx(ctx, sw_format, width, height);
 	return ret;
-}
-
-void hw_device::drop()
-{
-	if (ctx)
-		av_buffer_unref(&ctx);
 }
 
 codec::codec() : ctx(nullptr) {}

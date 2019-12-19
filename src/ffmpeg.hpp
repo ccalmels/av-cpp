@@ -83,8 +83,6 @@ public:
 
 	friend class input;
 private:
-	void drop();
-
 	AVBufferRef *ctx;
 	enum AVHWDeviceType type;
 };
