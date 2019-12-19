@@ -113,8 +113,6 @@ static AVBufferRef *ffmpeg_hw_context(enum AVHWDeviceType type,
 		return nullptr;
 	}
 
-	std::cerr << "Using " << av_hwdevice_get_type_name(type)
-		  << " HW decoding" << std::endl;
 	return hw_device_ctx;
 }
 
@@ -156,7 +154,43 @@ static void ffmpeg_hw_device_setup(AVCodecContext *ctx,
 		};
 }
 
-static AVCodecContext *ffmpeg_decoder_context(const AVCodecParameters* params,
+static AVBufferRef *ffmpeg_hw_frames_ctx(AVBufferRef* hw_device_ctx,
+					 AVPixelFormat sw_format,
+					 int width, int height)
+{
+	AVHWFramesConstraints *constraints;
+	AVPixelFormat hw_format;
+	AVBufferRef *hw_frames_ctx;
+	AVHWFramesContext *frames_ctx;
+
+	constraints = av_hwdevice_get_hwframe_constraints(hw_device_ctx, nullptr);
+	if (!constraints)
+		return nullptr;
+
+	hw_format = constraints->valid_hw_formats[0];
+
+	av_hwframe_constraints_free(&constraints);
+
+	hw_frames_ctx = av_hwframe_ctx_alloc(hw_device_ctx);
+	if (!hw_frames_ctx)
+		return nullptr;
+
+	frames_ctx = (AVHWFramesContext*)hw_frames_ctx->data;
+	frames_ctx->format = hw_format;
+	frames_ctx->sw_format = sw_format;
+	frames_ctx->width = width;
+	frames_ctx->height = height;
+
+	if  (av_hwframe_ctx_init(hw_frames_ctx) < 0) {
+		av_buffer_unref(&hw_frames_ctx);
+		return nullptr;
+	}
+
+	return hw_frames_ctx;
+}
+
+static AVCodecContext *ffmpeg_decoder_context(const std::string &codec_name,
+					      const AVCodecParameters* params,
 					      AVBufferRef *hw_device_ctx,
 					      enum AVHWDeviceType type,
 					      const std::string &options)
@@ -166,9 +200,17 @@ static AVCodecContext *ffmpeg_decoder_context(const AVCodecParameters* params,
 	AVDictionary *opts = nullptr;
 	int ret;
 
-	codec = avcodec_find_decoder(params->codec_id);
+	if  (codec_name.empty())
+		codec = avcodec_find_decoder(params->codec_id);
+	else
+		codec = avcodec_find_decoder_by_name(codec_name.c_str());
 	if (!codec)
 		return nullptr;
+
+	std::cerr << "Using decoder '" << codec->long_name << "'";
+	if (hw_device_ctx)
+		std::cerr << " with '" << av_hwdevice_get_type_name(type) << "' HW accel";
+	std::cerr << std::endl;
 
 	codec_ctx = avcodec_alloc_context3(codec);
 	if (!codec_ctx)
@@ -200,7 +242,8 @@ free_context:
 static AVCodecContext *ffmpeg_encoder_context(const std::string &codec_name,
 					      const std::string &options,
 					      AVCodecParameters *params,
-					      bool global_header)
+					      bool global_header,
+					      AVBufferRef *hw_frames_ref)
 {
 	AVCodec *codec = nullptr;
 	AVCodecContext *codec_ctx = nullptr;
@@ -210,7 +253,7 @@ static AVCodecContext *ffmpeg_encoder_context(const std::string &codec_name,
 	if (!codec)
 		return nullptr;
 
-	std::cerr << "Using codec '" << codec->long_name << "'" << std::endl;
+	std::cerr << "Using encoder '" << codec->long_name << "'" << std::endl;
 
 	codec_ctx = avcodec_alloc_context3(codec);
 	if (!codec_ctx)
@@ -227,6 +270,17 @@ static AVCodecContext *ffmpeg_encoder_context(const std::string &codec_name,
 
 	if (global_header)
 		codec_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+
+	if (hw_frames_ref) {
+		AVHWFramesContext *frames_ctx
+			= (AVHWFramesContext *)(hw_frames_ref->data);
+
+		codec_ctx->pix_fmt = frames_ctx->format;
+		codec_ctx->width   = frames_ctx->width;
+		codec_ctx->height  = frames_ctx->height;
+
+		codec_ctx->hw_frames_ctx = av_buffer_ref(hw_frames_ref);
+	}
 
 	if (avcodec_open2(codec_ctx, codec_ctx->codec, nullptr) < 0) {
 		std::cerr << "avcodec_open2 fails" << std::endl;
@@ -322,11 +376,56 @@ frame &frame::operator=(frame &&o)
 	return *this;
 }
 
+hw_frames::~hw_frames()
+{
+	av_buffer_unref(&ctx);
+}
+
+hw_frames::hw_frames(const hw_frames &o)
+{
+	if (o.ctx)
+		ctx = av_buffer_ref(o.ctx);
+	else
+		ctx = nullptr;
+}
+
+hw_frames &hw_frames::operator=(const hw_frames &o)
+{
+	av_buffer_unref(&ctx);
+	if (o.ctx)
+		ctx = av_buffer_ref(o.ctx);
+	else
+		ctx = nullptr;
+	return *this;
+}
+
+hw_frames::hw_frames(hw_frames &&o)
+{
+	ctx = o.ctx;
+	o.ctx = nullptr;
+}
+
+hw_frames &hw_frames::operator=(hw_frames &&o)
+{
+	if (ctx != o.ctx) {
+		av_buffer_unref(&ctx);
+		ctx = o.ctx;
+		o.ctx = nullptr;
+	}
+	return *this;
+}
+
+bool hw_frames::operator!()
+{
+	return (ctx == nullptr);
+}
+
 hw_device::hw_device(const std::string &name, const std::string &device)
 {
 	type = av_hwdevice_find_type_by_name(name.c_str());
 	if (type == AV_HWDEVICE_TYPE_NONE) {
-		std::cerr << name << " hwdevice not supported" << std::endl;
+		std::cerr << "HW device " << name << " not supported"
+			  << std::endl;
 		ctx = nullptr;
 	} else
 		ctx = ffmpeg_hw_context(type, device);
@@ -380,7 +479,16 @@ hw_device &hw_device::operator=(hw_device &&o)
 
 bool hw_device::operator!() { return ctx == nullptr; }
 
-void hw_device::drop() {
+hw_frames hw_device::get_hw_frames(AVPixelFormat sw_format, int width, int height)
+{
+	hw_frames ret;
+
+	ret.ctx = ffmpeg_hw_frames_ctx(ctx, sw_format, width, height);
+	return ret;
+}
+
+void hw_device::drop()
+{
 	if (ctx)
 		av_buffer_unref(&ctx);
 }
@@ -449,6 +557,20 @@ bool decoder::operator>>(frame &f)
 	return receive(f.f);
 }
 
+hw_frames decoder::get_hw_frames()
+{
+	hw_frames ret;
+
+	if (ctx->hw_frames_ctx)
+		ret.ctx = av_buffer_ref(ctx->hw_frames_ctx);
+	else
+		ret.ctx = ffmpeg_hw_frames_ctx(ctx->hw_device_ctx,
+					       AV_PIX_FMT_NV12,
+					       ctx->width, ctx->height);
+
+	return ret;
+}
+
 input::input(input &&o)
 {
 	ctx = o.ctx;
@@ -507,13 +629,24 @@ int input::get_audio_index(int id) const
 	return av_find_best_stream(ctx, AVMEDIA_TYPE_AUDIO, id, -1, nullptr, 0);
 }
 
-decoder input::get(int index, const std::string &options)
+decoder input::get(int index)
 {
-	return get(hw_device(), index, options);
+	return get(hw_device(), index, "", "");
+}
+
+decoder input::get(int index,
+		   const std::string &codec_name, const std::string &options)
+{
+	return get(hw_device(), index, codec_name, options);
+}
+
+decoder input::get(const hw_device &device, int index)
+{
+	return get(device, index, "", "");
 }
 
 decoder input::get(const hw_device &device, int index,
-		   const std::string &options)
+		   const std::string &codec_name, const std::string &options)
 {
 	decoder dec;
 	AVCodecParameters *par = nullptr;
@@ -522,10 +655,13 @@ decoder input::get(const hw_device &device, int index,
 
 	par = ctx->streams[index]->codecpar;
 
-	dec.ctx = ffmpeg_decoder_context(par, device.ctx, device.type, options);
+	dec.ctx = ffmpeg_decoder_context(codec_name, par,
+					 device.ctx, device.type, options);
 
 	return dec;
 }
+
+
 
 int64_t input::start_time_realtime() const
 {
@@ -578,11 +714,14 @@ frame encoder::get_empty_frame()
 {
 	frame f;
 
-	f.f->format = ctx->pix_fmt;
-	f.f->width  = ctx->width;
-	f.f->height = ctx->height;
+	if (!ctx->hw_frames_ctx) {
+		f.f->format = ctx->pix_fmt;
+		f.f->width  = ctx->width;
+		f.f->height = ctx->height;
 
-	av_frame_get_buffer(f.f, 32);
+		av_frame_get_buffer(f.f, 32);
+	} else
+		av_hwframe_get_buffer(ctx->hw_frames_ctx, f.f, 0);
 
 	return f;
 }
@@ -633,6 +772,12 @@ bool output::open(const std::string &uri)
 
 encoder output::add_stream(const std::string &codec, const std::string &options)
 {
+	return add_stream(hw_frames(), codec, options);
+}
+
+encoder output::add_stream(const hw_frames &frames, const std::string &codec,
+			   const std::string &options)
+{
 	encoder enc;
 	AVStream *stream;
 
@@ -644,7 +789,7 @@ encoder output::add_stream(const std::string &codec, const std::string &options)
 
 	enc.ctx = ffmpeg_encoder_context(
 		codec, options, stream->codecpar,
-		ctx->oformat->flags & AVFMT_GLOBALHEADER);
+		ctx->oformat->flags & AVFMT_GLOBALHEADER, frames.ctx);
 
 	if (enc.ctx) {
 		enc.stream_index = stream->id = ctx->nb_streams - 1;

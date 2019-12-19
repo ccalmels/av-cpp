@@ -45,6 +45,26 @@ struct frame {
 	AVFrame *f;
 };
 
+class hw_frames {
+public:
+	hw_frames() : ctx(nullptr) {}
+	~hw_frames();
+
+	hw_frames(const hw_frames &o);
+	hw_frames &operator=(const hw_frames &o);
+
+	hw_frames(hw_frames &&o);
+	hw_frames &operator=(hw_frames &&o);
+
+	bool operator!();
+
+	friend class hw_device;
+	friend class output;
+	friend class decoder;
+private:
+	AVBufferRef *ctx;
+};
+
 class hw_device {
 public:
 	hw_device() : ctx(nullptr) {}
@@ -58,6 +78,8 @@ public:
 	hw_device &operator=(hw_device &&o);
 
 	bool operator!();
+
+	hw_frames get_hw_frames(AVPixelFormat sw_format, int width, int height);
 
 	friend class input;
 private:
@@ -94,6 +116,8 @@ public:
 	bool operator<<(const packet &p);
 	bool operator>>(frame &f);
 
+	hw_frames get_hw_frames();
+
 	friend class input;
 };
 
@@ -115,9 +139,13 @@ public:
 	int get_video_index(int id) const;
 	int get_audio_index(int id) const;
 
-	decoder get(int index, const std::string &options = "");
-	decoder get(const hw_device &device,
-		    int index, const std::string &options = "");
+	decoder get(int index);
+	decoder get(int index, const std::string &codec_name,
+		    const std::string &options = "");
+	decoder get(const hw_device &device, int index);
+	decoder get(const hw_device &device, int index,
+		    const std::string &codec_name,
+		    const std::string &options = "");
 
 	int64_t start_time_realtime() const;
 	AVRational time_base(int index) const;
@@ -159,6 +187,9 @@ public:
 	bool open(const std::string &uri);
 
 	encoder add_stream(const std::string &codec,
+			   const std::string &options = "");
+	encoder add_stream(const hw_frames &frames,
+			   const std::string &codec,
 			   const std::string &options = "");
 	int add_stream(const input &in, int index);
 
