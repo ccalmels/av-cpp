@@ -8,22 +8,24 @@ extern "C" {
 #include <libavutil/opt.h>
 }
 
-static void dictionary(AVDictionary **dict, const std::string &options)
-{
-	av_dict_parse_string(dict, options.c_str(), "=", ":", 0);
-}
+struct dictionary {
+	AVDictionary *d;
 
-static void free_dictionary(AVDictionary *dict)
-{
-	char *buf = nullptr;
+	dictionary(const std::string &options) : d(nullptr) {
+		av_dict_parse_string(&d, options.c_str(), "=", ":", 0);
+	}
+	~dictionary() {
+		char *buf = nullptr;
 
-	av_dict_get_string(dict, &buf, '=', ':');
+		av_dict_get_string(d, &buf, '=', ':');
+		if (buf && strlen(buf))
+			std::cerr << "Warning: unused options: " << buf << std::endl;
 
-	std::cerr << "Warning: unused options: " << buf << std::endl;
-
-	av_freep(&buf);
-	av_dict_free(&dict);
-}
+		av_freep(&buf);
+		av_dict_free(&d);
+	}
+	AVDictionary **ptr() { return &d; }
+};
 
 static AVFormatContext *ffmpeg_input_format_context(const std::string &uri,
 						    const std::string &format,
@@ -31,7 +33,6 @@ static AVFormatContext *ffmpeg_input_format_context(const std::string &uri,
 {
 	AVFormatContext *fmt_ctx = nullptr;
 	AVInputFormat *ifmt = nullptr;
-	AVDictionary *opts = nullptr;
 	int ret;
 
 	if (!format.empty()) {
@@ -43,12 +44,8 @@ static AVFormatContext *ffmpeg_input_format_context(const std::string &uri,
 		}
 	}
 
-	dictionary(&opts, options);
-
-	ret = avformat_open_input(&fmt_ctx, uri.c_str(), ifmt, &opts);
-
-	free_dictionary(opts);
-
+	ret = avformat_open_input(&fmt_ctx, uri.c_str(), ifmt,
+				  dictionary(options).ptr());
 	if (ret) {
 		std::cerr << "Cannot open input file '" << uri << "'"
 			  << std::endl;
@@ -186,7 +183,6 @@ static AVCodecContext *ffmpeg_decoder_context(const std::string &codec_name,
 {
 	AVCodec *codec = nullptr;
 	AVCodecContext *codec_ctx = nullptr;
-	AVDictionary *opts = nullptr;
 	int ret;
 
 	if  (codec_name.empty())
@@ -212,13 +208,8 @@ static AVCodecContext *ffmpeg_decoder_context(const std::string &codec_name,
 	if (hw_device_ctx)
 		ffmpeg_hw_device_setup(codec_ctx, hw_device_ctx, type);
 
-	dictionary(&opts, options);
-	av_dict_set(&opts, "refcounted_frames", "1", 0);
-
-	ret = avcodec_open2(codec_ctx, codec, &opts);
-
-	free_dictionary(opts);
-
+	ret = avcodec_open2(codec_ctx, codec,
+			    dictionary(std::string("refcounted_frames=1:") + options).ptr());
 	if (ret < 0)
 		goto free_context;
 
@@ -236,7 +227,6 @@ static AVCodecContext *ffmpeg_encoder_context(const std::string &codec_name,
 {
 	AVCodec *codec = nullptr;
 	AVCodecContext *codec_ctx = nullptr;
-	AVDictionary *opts = nullptr;
 
 	codec = avcodec_find_encoder_by_name(codec_name.c_str());
 	if (!codec)
@@ -248,12 +238,10 @@ static AVCodecContext *ffmpeg_encoder_context(const std::string &codec_name,
 	if (!codec_ctx)
 		return nullptr;
 
-	dictionary(&opts, options);
+	auto d = dictionary(options);
 
-	av_opt_set_dict(codec_ctx, &opts);
-	av_opt_set_dict(codec_ctx->priv_data, &opts);
-
-	free_dictionary(opts);
+	av_opt_set_dict(codec_ctx, d.ptr());
+	av_opt_set_dict(codec_ctx->priv_data, d.ptr());
 
 	codec_ctx->sample_fmt = codec_ctx->request_sample_fmt;
 
