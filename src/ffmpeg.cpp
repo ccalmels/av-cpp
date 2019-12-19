@@ -19,8 +19,8 @@ struct dictionary {
 
 		av_dict_get_string(d, &buf, '=', ':');
 		if (buf && strlen(buf))
-			std::cerr << "Warning: unused options: " << buf << std::endl;
-
+			std::cerr << "Warning: unused options: "
+				  << buf << std::endl;
 		av_freep(&buf);
 		av_dict_free(&d);
 	}
@@ -53,7 +53,7 @@ static AVFormatContext *ffmpeg_input_format_context(const std::string &uri,
 	}
 
 	if (avformat_find_stream_info(fmt_ctx, NULL) < 0) {
-		std::cerr << "Cannot find input stream information" << std::endl;
+		std::cerr << "Cannot find input stream infos" << std::endl;
 		avformat_close_input(&fmt_ctx);
 		return nullptr;
 	}
@@ -93,7 +93,8 @@ static AVBufferRef *ffmpeg_hw_context(enum AVHWDeviceType type,
 	if (!device.empty())
 		device_name = device.c_str();
 
-	if (av_hwdevice_ctx_create(&hw_device_ctx, type, device_name, nullptr, 0) < 0) {
+	if (av_hwdevice_ctx_create(&hw_device_ctx, type,device_name,
+				   nullptr, 0) < 0) {
 		std::cerr << "fail to create " << av_hwdevice_get_type_name(type)
 			  << " HW device" << std::endl;
 		return nullptr;
@@ -127,15 +128,15 @@ static void ffmpeg_hw_device_setup(AVCodecContext *ctx,
 
 	ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 	ctx->get_format =
-		[](AVCodecContext *ctx,
-		   const enum AVPixelFormat *pix_fmts) {
+		[](AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts)
+		{
 			const enum AVPixelFormat *p;
 
 			for (p = pix_fmts; *p != -1; p++)
 				if (*p == hw_maps[ctx])
 					return *p;
 
-			std::cerr << "Failed to get HW surface format." << std::endl;
+			std::cerr << "Failed to get HW pixel format." << std::endl;
 			return AV_PIX_FMT_NONE;
 		};
 }
@@ -149,7 +150,8 @@ static AVBufferRef *ffmpeg_hw_frames_ctx(AVBufferRef* hw_device_ctx,
 	AVBufferRef *hw_frames_ctx;
 	AVHWFramesContext *frames_ctx;
 
-	constraints = av_hwdevice_get_hwframe_constraints(hw_device_ctx, nullptr);
+	constraints =
+		av_hwdevice_get_hwframe_constraints(hw_device_ctx, nullptr);
 	if (!constraints)
 		return nullptr;
 
@@ -194,7 +196,8 @@ static AVCodecContext *ffmpeg_decoder_context(const std::string &codec_name,
 
 	std::cerr << "Using decoder '" << codec->long_name << "'";
 	if (hw_device_ctx)
-		std::cerr << " with '" << av_hwdevice_get_type_name(type) << "' HW accel";
+		std::cerr << " with '" << av_hwdevice_get_type_name(type)
+			  << "' HW accel";
 	std::cerr << std::endl;
 
 	codec_ctx = avcodec_alloc_context3(codec);
@@ -209,7 +212,8 @@ static AVCodecContext *ffmpeg_decoder_context(const std::string &codec_name,
 		ffmpeg_hw_device_setup(codec_ctx, hw_device_ctx, type);
 
 	ret = avcodec_open2(codec_ctx, codec,
-			    dictionary(std::string("refcounted_frames=1:") + options).ptr());
+			    dictionary(std::string("refcounted_frames=1:")
+				       + options).ptr());
 	if (ret < 0)
 		goto free_context;
 
@@ -456,7 +460,8 @@ hw_device &hw_device::operator=(hw_device &&o)
 
 bool hw_device::operator!() { return ctx == nullptr; }
 
-hw_frames hw_device::get_hw_frames(AVPixelFormat sw_format, int width, int height)
+hw_frames hw_device::get_hw_frames(AVPixelFormat sw_format,
+				   int width, int height)
 {
 	hw_frames ret;
 
