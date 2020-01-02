@@ -165,6 +165,7 @@ TEST_CASE("HW encoding using HW frames", "[encoding][hwaccel]")
 		hw_name = "nvenc";
 		frames = hw.get_hw_frames(AV_PIX_FMT_YUV420P, 960, 540);
 	}
+	REQUIRE(!!frames);
 
 	SECTION("h264 encoding") {
 		encoder_name = "h264_" + hw_name;
@@ -172,8 +173,6 @@ TEST_CASE("HW encoding using HW frames", "[encoding][hwaccel]")
 	SECTION("hevc encoding") {
 		encoder_name = "hevc_" + hw_name;
 	}
-
-	REQUIRE(!!frames);
 
 	av::output video;
 
