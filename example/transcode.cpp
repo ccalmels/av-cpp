@@ -8,7 +8,13 @@ int main(int argc, char *argv[])
 	av::decoder dec;
 	av::encoder enc;
 	av::hw_device accel("cuda");
+	std::string encoder = "hevc_nvenc";
 	int count = 0;
+
+	if (!accel) {
+		accel = av::hw_device("vaapi");
+		encoder = "h264_vaapi";
+	}
 
 	if (argc < 3) {
 		std::cerr << "Usage: " << argv[0]
@@ -47,8 +53,8 @@ int main(int argc, char *argv[])
 			if (!encoder_initialized) {
 				encoder_initialized = true;
 
-				enc = out.add_stream(dec.get_hw_frames(), "hevc_nvenc",
-						     "time_base=1/25:preset=slow:spatial_aq=true:aq-strength=15:qp=36");
+				enc = out.add_stream(dec.get_hw_frames(),
+						     encoder, "time_base=1/25");
 			}
 
 			f.f->pts = count++;
