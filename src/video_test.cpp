@@ -148,3 +148,58 @@ TEST_CASE("Decoding video using HW", "[decoding][hwaccel]")
 
 	REQUIRE(decode_video("/tmp/test.x264.mkv", hw_accel) == true);
 }
+
+TEST_CASE("HW encoding using HW frames", "[encoding][hwaccel]")
+{
+	std::string encoder_name, hw_name;
+	av::hw_device hw("cuda");
+	if (!hw) {
+		hw = av::hw_device("vaapi");
+		if (!hw)
+			return;
+
+		hw_name = "vaapi";
+	} else
+		hw_name = "nvenc";
+
+	SECTION("h264 encoding") {
+		encoder_name = "h264_" + hw_name;
+	}
+	SECTION("hevc encoding") {
+		encoder_name = "hevc_" + hw_name;
+	}
+
+	av::hw_frames frames = hw.get_hw_frames(AV_PIX_FMT_YUV420P, 960, 540);
+
+	REQUIRE(!!frames);
+
+	av::output video;
+
+	REQUIRE(video.open("/tmp/test." + encoder_name + ".hw.mkv"));
+
+	av::encoder encoder;
+	encoder = video.add_stream(frames, encoder_name, "time_base=1/25");
+
+	REQUIRE(!!encoder);
+
+	av::packet p;
+	av::frame f, hw_f;
+
+	hw_f = encoder.get_empty_frame();
+
+	for (int i = 0; i < 100; i++) {
+		generate_frame(f.f, i, 960, 540);
+
+		REQUIRE(av_hwframe_transfer_data(hw_f.f, f.f, 0) >= 0);
+
+		hw_f.f->pts = f.f->pts;
+		REQUIRE(encoder << hw_f);
+
+		while (encoder >> p)
+			video << p;
+	}
+
+	encoder.flush();
+	while (encoder >> p)
+		video << p;
+}
