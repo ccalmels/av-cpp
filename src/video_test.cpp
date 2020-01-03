@@ -6,6 +6,8 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
+#define NB_FRAMES 100
+
 /*
  * code borrow from ffmpeg documentation/example
  */
@@ -62,7 +64,7 @@ TEST_CASE("Encoding video using software encoder", "[encoding]")
 
 	f = encode_video.get_empty_frame();
 
-	for (int i = 0; i < 100; i++) {
+	for (int i = 0; i < NB_FRAMES; i++) {
 		generate_frame(f.f, i, 960, 540);
 
 		REQUIRE(encode_video << f);
@@ -118,7 +120,7 @@ TEST_CASE("HW encoding using HW frames", "[encoding][hwaccel]")
 
 	hw_f = encoder.get_empty_frame();
 
-	for (int i = 0; i < 100; i++) {
+	for (int i = 0; i < NB_FRAMES; i++) {
 		generate_frame(f.f, i, width, height);
 
 		REQUIRE(av_hwframe_transfer_data(hw_f.f, f.f, 0) >= 0);
@@ -148,7 +150,7 @@ TEST_CASE("HW Decoding video", "[decoding][hwaccel]")
 	av::decoder stream0_decoder;
 	av::frame f;
 	av::packet p;
-	int count = 100;
+	int count = NB_FRAMES;
 
 	SECTION("h264 decoding") {
 		filename = "/tmp/test.libx264.mkv";
@@ -188,7 +190,7 @@ TEST_CASE("Software Decoding video", "[decoding]")
 	av::decoder stream0_decoder;
 	av::frame f;
 	av::packet p;
-	int count = 100;
+	int count = NB_FRAMES;
 
 	SECTION("h264 decoding") {
 		filename = "/tmp/test.libx264.mkv";
