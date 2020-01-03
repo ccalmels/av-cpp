@@ -38,36 +38,34 @@ static void generate_frame(AVFrame *f, int index, int width, int height)
 	f->pts = index;
 }
 
-static bool generate_video(const std::string &name,
-			   const std::string &encoder_name)
+TEST_CASE("Encoding video using software encoder", "[encoding]")
 {
+	std::string encoder_name;
 	av::output generated;
 	av::encoder encode_video;
 	av::frame f;
 	av::packet p;
 
-	if (!generated.open(name)) {
-		std::cerr << "Can't open " << name << std::endl;
-		return false;
+	SECTION("h264 encoding") {
+		encoder_name = "libx264";
 	}
+	SECTION("hevc encoding") {
+		encoder_name = "libx265";
+	}
+
+	REQUIRE(generated.open("/tmp/test." + encoder_name + ".mkv"));
 
 	encode_video = generated.add_stream(
 		encoder_name,
 		"video_size=960x540:pixel_format=yuv420p:time_base=1/25");
-	if (!encode_video) {
-		std::cerr << "Can't create encoder for " << name << std::endl;
-		return false;
-	}
+	REQUIRE(!!encode_video);
 
 	f = encode_video.get_empty_frame();
 
 	for (int i = 0; i < 100; i++) {
 		generate_frame(f.f, i, 960, 540);
 
-		if (!(encode_video << f)) {
-			std::cerr << "Encoding frame fails" << std::endl;
-			return false;
-		}
+		REQUIRE(encode_video << f);
 
 		while (encode_video >> p)
 			generated << p;
@@ -76,77 +74,6 @@ static bool generate_video(const std::string &name,
 	encode_video.flush();
 	while (encode_video >> p)
 		generated << p;
-
-	return true;
-}
-
-static av::hw_device no_hw_accel;
-static bool decode_video(const std::string &name,
-			 av::hw_device &device = no_hw_accel)
-{
-	av::input video;
-	av::decoder stream0_decoder;
-	av::frame f;
-	av::packet p;
-
-	if (!video.open(name)) {
-		std::cerr << "Can't open " << name << std::endl;
-		return false;
-	}
-
-	stream0_decoder = video.get(device, 0);
-	if (!stream0_decoder) {
-		std::cerr << "Can't create decoder for " << name << std::endl;
-		return false;
-	}
-
-	int count = 0;
-	while (video >> p) {
-		if (p.stream_index() != 0)
-			continue;
-
-		if (!(stream0_decoder << p)) {
-			std::cerr << "Decoding frame fails" << std::endl;
-			return false;
-		}
-
-		while (stream0_decoder >> f) {
-			std::cerr << "got frame: " << f.f->pts << std::endl;
-			count++;
-		}
-	}
-
-	stream0_decoder.flush();
-	while (stream0_decoder >> f) {
-		std::cerr << "got frame: " << f.f->pts << std::endl;
-		count++;
-	}
-
-	return (count == 100);
-}
-
-TEST_CASE("Encoding video using software encoder", "[encoding]")
-{
-	REQUIRE(generate_video("/tmp/test.x264.mkv", "libx264") == true);
-	REQUIRE(generate_video("/tmp/test.x265.mkv", "libx265") == true);
-}
-
-TEST_CASE("Decoding video", "[decoding]")
-{
-	REQUIRE(decode_video("/tmp/test.x264.mkv") == true);
-	REQUIRE(decode_video("/tmp/test.x265.mkv") == true);
-}
-
-TEST_CASE("Decoding video using HW", "[decoding][hwaccel]")
-{
-	av::hw_device hw_accel("cuda");
-	if (!hw_accel)
-		hw_accel = av::hw_device("vaapi");
-
-	if (!hw_accel)
-		return;
-
-	REQUIRE(decode_video("/tmp/test.x264.mkv", hw_accel) == true);
 }
 
 TEST_CASE("HW encoding using HW frames", "[encoding][hwaccel]")
@@ -206,4 +133,89 @@ TEST_CASE("HW encoding using HW frames", "[encoding][hwaccel]")
 	encoder.flush();
 	while (encoder >> p)
 		video << p;
+}
+
+TEST_CASE("HW Decoding video", "[decoding][hwaccel]")
+{
+	av::hw_device hw_accel("cuda");
+	if (!hw_accel)
+		hw_accel = av::hw_device("vaapi");
+	if (!hw_accel)
+		return;
+
+	std::string filename;
+	av::input video;
+	av::decoder stream0_decoder;
+	av::frame f;
+	av::packet p;
+	int count = 100;
+
+	SECTION("h264 decoding") {
+		filename = "/tmp/test.libx264.mkv";
+	}
+#if 0
+	SECTION("hevc decoding") {
+		filename = "/tmp/test.libx265.mkv";
+	}
+#endif
+	REQUIRE(video.open(filename));
+
+	stream0_decoder = video.get(hw_accel, 0);
+
+	REQUIRE(!!stream0_decoder);
+
+	while (video >> p) {
+		if (p.stream_index() != 0)
+			continue;
+
+		REQUIRE(stream0_decoder << p);
+
+		while (stream0_decoder >> f)
+			count--;
+	}
+
+	stream0_decoder.flush();
+	while (stream0_decoder >> f)
+		count--;
+
+	REQUIRE(count == 0);
+}
+
+TEST_CASE("Software Decoding video", "[decoding]")
+{
+	std::string filename;
+	av::input video;
+	av::decoder stream0_decoder;
+	av::frame f;
+	av::packet p;
+	int count = 100;
+
+	SECTION("h264 decoding") {
+		filename = "/tmp/test.libx264.mkv";
+	}
+	SECTION("hevc decoding") {
+		filename = "/tmp/test.libx265.mkv";
+	}
+
+	REQUIRE(video.open(filename));
+
+	stream0_decoder = video.get(0);
+
+	REQUIRE(!!stream0_decoder);
+
+	while (video >> p) {
+		if (p.stream_index() != 0)
+			continue;
+
+		REQUIRE(stream0_decoder << p);
+
+		while (stream0_decoder >> f)
+			count--;
+	}
+
+	stream0_decoder.flush();
+	while (stream0_decoder >> f)
+		count--;
+
+	REQUIRE(count == 0);
 }
