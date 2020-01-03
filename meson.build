@@ -10,6 +10,10 @@ lib = library('ffmpeg-cpp',
 			 'src/ffmpeg.cpp' ],
 	      dependencies: deps, install: true)
 
+avcpp_dep = declare_dependency(dependencies: deps,
+			       include_directories : include_directories('src'),
+			       link_with : lib)
+
 install_headers('src/ffmpeg.hpp', subdir: 'ffmpeg')
 
 import('pkgconfig').generate(name: meson.project_name(),
