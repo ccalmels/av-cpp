@@ -22,7 +22,7 @@ import('pkgconfig').generate(name: meson.project_name(),
 			     libraries: lib)
 
 library_video_test = executable('library_video_test', 'src/video_test.cpp',
-				dependencies: deps, link_with: lib)
+				dependencies: avcpp_dep)
 test('library video test', library_video_test)
 
 # examples
@@ -30,21 +30,13 @@ test('library video test', library_video_test)
 threads_dep = dependency('threads')
 
 executable('rtsp_muxer', 'examples/rtsp_muxer.cpp',
-	   include_directories: include_directories('src'),
-	   dependencies: [ deps,  threads_dep ],
-	   link_with: lib)
+	   dependencies: [ avcpp_dep, threads_dep ])
 
 executable('pcm_to_mp3', 'examples/pcm_to_mp3.cpp',
-	   include_directories: include_directories('src'),
-	   dependencies: deps,
-	   link_with: lib)
+	   dependencies: avcpp_dep)
 
 executable('multi_stream', 'examples/multi_stream.cpp',
-	   include_directories: include_directories('src'),
-	   dependencies: [ deps,  threads_dep ],
-	   link_with: lib)
+	   dependencies: [ avcpp_dep, threads_dep ])
 
 executable('transcode', 'examples/transcode.cpp',
-	   include_directories: include_directories('src'),
-	   dependencies: deps,
-	   link_with: lib)
+	   dependencies: avcpp_dep)
