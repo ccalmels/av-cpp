@@ -1,6 +1,3 @@
-#include <list>
-#include <vector>
-#include <iostream>
 #include "ffmpeg.hpp"
 
 #define CATCH_CONFIG_MAIN
