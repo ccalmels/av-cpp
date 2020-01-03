@@ -25,22 +25,22 @@ test('library video test', library_video_test)
 
 threads_dep = dependency('threads')
 
-executable('rtsp_muxer', 'example/rtsp_muxer.cpp',
+executable('rtsp_muxer', 'examples/rtsp_muxer.cpp',
 	   include_directories: include_directories('src'),
 	   dependencies: [ deps,  threads_dep ],
 	   link_with: lib)
 
-executable('pcm_to_mp3', 'example/pcm_to_mp3.cpp',
+executable('pcm_to_mp3', 'examples/pcm_to_mp3.cpp',
 	   include_directories: include_directories('src'),
 	   dependencies: deps,
 	   link_with: lib)
 
-executable('multi_stream', 'example/multi_stream.cpp',
+executable('multi_stream', 'examples/multi_stream.cpp',
 	   include_directories: include_directories('src'),
 	   dependencies: [ deps,  threads_dep ],
 	   link_with: lib)
 
-executable('transcode', 'example/transcode.cpp',
+executable('transcode', 'examples/transcode.cpp',
 	   include_directories: include_directories('src'),
 	   dependencies: deps,
 	   link_with: lib)
