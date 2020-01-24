@@ -286,7 +286,8 @@ packet::~packet() { av_packet_free(&p); }
 
 packet::packet(const packet &o)
 {
-	p = av_packet_clone(o.p);
+	p = av_packet_alloc();
+	av_packet_ref(p, o.p);
 }
 
 packet &packet::operator=(const packet &o)
@@ -298,7 +299,8 @@ packet &packet::operator=(const packet &o)
 
 packet::packet(packet &&o)
 {
-	p = av_packet_clone(o.p);
+	p = av_packet_alloc();
+	av_packet_ref(p, o.p);
 	av_packet_unref(o.p);
 }
 
@@ -332,7 +334,8 @@ frame::~frame() { av_frame_free(&f); }
 
 frame::frame(const frame &o)
 {
-	f = av_frame_clone(o.f);
+	f = av_frame_alloc();
+	av_frame_ref(f, o.f);
 }
 
 frame &frame::operator=(const frame &o)
@@ -344,7 +347,8 @@ frame &frame::operator=(const frame &o)
 
 frame::frame(frame &&o)
 {
-	f = av_frame_clone(o.f);
+	f = av_frame_alloc();
+	av_frame_ref(f, o.f);
 	av_frame_unref(o.f);
 }
 
