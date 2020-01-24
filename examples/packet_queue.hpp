@@ -43,7 +43,7 @@ struct packet_queue {
 		return p;
 	}
 
-	void enqueue(av::packet p) {
+	void enqueue(av::packet &p) {
 		std::lock_guard<std::mutex> l(m);
 
 		empty_packets.push_back(p);
