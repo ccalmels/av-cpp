@@ -329,7 +329,7 @@ void packet::add_delta_pts(int64_t delta)
 	p->dts += delta;
 }
 
-frame::frame() { f = av_frame_alloc(); }
+frame::frame() : f(av_frame_alloc()) {}
 frame::~frame() { av_frame_free(&f); }
 
 frame::frame(const frame &o)
