@@ -299,9 +299,8 @@ packet &packet::operator=(const packet &o)
 
 packet::packet(packet &&o)
 {
-	p = av_packet_alloc();
-	av_packet_ref(p, o.p);
-	av_packet_unref(o.p);
+	p = o.p;
+	o.p = nullptr;
 }
 
 packet &packet::operator=(packet &&o)
@@ -347,9 +346,8 @@ frame &frame::operator=(const frame &o)
 
 frame::frame(frame &&o)
 {
-	f = av_frame_alloc();
-	av_frame_ref(f, o.f);
-	av_frame_unref(o.f);
+	f = o.f;
+	o.f = nullptr;
 }
 
 frame &frame::operator=(frame &&o)
