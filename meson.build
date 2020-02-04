@@ -1,4 +1,4 @@
-project('ffmpeg-cpp', 'cpp', default_options: [ 'cpp_std=c++14' ])
+project('av-cpp', 'cpp', default_options: [ 'cpp_std=c++14' ])
 
 deps = [ dependency('libavformat'),
 	 dependency('libavcodec'),
