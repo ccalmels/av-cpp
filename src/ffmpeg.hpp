@@ -148,6 +148,8 @@ public:
 	int64_t start_time_realtime() const;
 	AVRational time_base(int index) const;
 
+	std::string metadata() const;
+
 	friend class output;
 private:
 	input(const input &) = delete;
@@ -193,6 +195,8 @@ public:
 
 	int write(AVPacket *packet);
 	bool operator<<(const packet &p);
+
+	void add_metadata(const std::string &data);
 private:
 	output(const output &) = delete;
 	output &operator=(const output &) = delete;

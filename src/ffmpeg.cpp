@@ -653,6 +653,18 @@ AVRational input::time_base(int index) const
 	return ctx->streams[index]->time_base;
 }
 
+std::string input::metadata() const
+{
+	std::string ret;
+	char *buf = nullptr;
+
+	av_dict_get_string(ctx->metadata, &buf, '=', ':');
+	if (buf && strlen(buf))
+		ret = buf;
+	av_freep(&buf);
+	return ret;
+}
+
 bool encoder::send(const AVFrame *frame)
 {
 	int ret;
@@ -828,6 +840,11 @@ int output::write(AVPacket *packet)
 bool output::operator<<(const packet &p)
 {
 	return !(write(p.p) < 0);
+}
+
+void output::add_metadata(const std::string &data)
+{
+	av_dict_parse_string(&ctx->metadata, data.c_str(), "=", ":", 0);
 }
 
 void output::close()
