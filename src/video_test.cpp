@@ -37,7 +37,7 @@ static void generate_frame(AVFrame *f, int index, int width, int height)
 	f->pts = index;
 }
 
-TEST_CASE("Encoding video using software encoder", "[encoding]")
+TEST_CASE("Encoding video using software encoder", "[encoding][software]")
 {
 	std::string encoder_name;
 	av::output generated;
@@ -180,7 +180,7 @@ TEST_CASE("HW Decoding video", "[decoding][hwaccel]")
 	REQUIRE(count == 0);
 }
 
-TEST_CASE("Software Decoding video", "[decoding]")
+TEST_CASE("Software Decoding video", "[decoding][software]")
 {
 	std::string filename;
 	av::input video;
