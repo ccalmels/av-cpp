@@ -667,14 +667,21 @@ AVRational input::time_base(int index) const
 
 std::string input::metadata() const
 {
-	std::string ret;
-	char *buf = nullptr;
+	return dictionary_to_string(ctx->metadata);
+}
 
-	av_dict_get_string(ctx->metadata, &buf, '=', ':');
-	if (buf && strlen(buf))
-		ret = buf;
-	av_freep(&buf);
-	return ret;
+std::string input::program_metadata(int index) const
+{
+	assert((unsigned int)index < ctx->nb_programs);
+
+	return dictionary_to_string(ctx->programs[index]->metadata);
+}
+
+std::string input::stream_metadata(int index) const
+{
+	assert((unsigned int)index < ctx->nb_streams);
+
+	return dictionary_to_string(ctx->streams[index]->metadata);
 }
 
 bool encoder::send(const AVFrame *frame)
@@ -857,6 +864,20 @@ bool output::operator<<(const packet &p)
 void output::add_metadata(const std::string &data)
 {
 	av_dict_parse_string(&ctx->metadata, data.c_str(), "=", ":", 0);
+}
+
+void output::add_program_metadata(const std::string &data, int index)
+{
+	assert((unsigned int)index < ctx->nb_programs);
+
+	av_dict_parse_string(&ctx->programs[index]->metadata, data.c_str(), "=", ":", 0);
+}
+
+void output::add_stream_metadata(const std::string &data, int index)
+{
+	assert((unsigned int)index < ctx->nb_streams);
+
+	av_dict_parse_string(&ctx->streams[index]->metadata, data.c_str(), "=", ":", 0);
 }
 
 void output::close()

@@ -149,6 +149,8 @@ public:
 	AVRational time_base(int index) const;
 
 	std::string metadata() const;
+	std::string program_metadata(int index) const;
+	std::string stream_metadata(int index) const;
 
 	friend class output;
 private:
@@ -197,6 +199,8 @@ public:
 	bool operator<<(const packet &p);
 
 	void add_metadata(const std::string &data);
+	void add_program_metadata(const std::string &data, int index);
+	void add_stream_metadata(const std::string &data, int index);
 private:
 	output(const output &) = delete;
 	output &operator=(const output &) = delete;
