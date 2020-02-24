@@ -218,3 +218,45 @@ TEST_CASE("Software Decoding video", "[decoding][software]")
 
 	REQUIRE(count == 0);
 }
+
+TEST_CASE("Metadata handling", "[metadata]")
+{
+	std::string metadata = "service_name=foo:service_provider=bar";
+	std::string encoder_name;
+	av::output generated;
+	av::encoder encode_video;
+	av::frame f;
+	av::packet p;
+
+	encoder_name = "libx264";
+
+	REQUIRE(generated.open("/tmp/metadata_test." + encoder_name + ".ts"));
+
+	generated.add_metadata(metadata);
+
+	encode_video = generated.add_stream(
+		encoder_name,
+		"video_size=960x540:pixel_format=yuv420p:time_base=1/25");
+	REQUIRE(!!encode_video);
+
+	f = encode_video.get_empty_frame();
+
+	for (int i = 0; i < NB_FRAMES; i++) {
+		generate_frame(f.f, i, 960, 540);
+
+		REQUIRE(encode_video << f);
+
+		while (encode_video >> p)
+			generated << p;
+	}
+
+	encode_video.flush();
+	while (encode_video >> p)
+		generated << p;
+
+	av::input video;
+
+	REQUIRE(video.open("/tmp/metadata_test." + encoder_name + ".ts"));
+
+	REQUIRE(metadata.compare(video.program_metadata(0)) == 0);
+}
