@@ -8,6 +8,19 @@ extern "C" {
 #include <libavutil/opt.h>
 }
 
+static std::string dictionary_to_string(const AVDictionary *d)
+{
+	std::string ret;
+	char *buf = nullptr;
+
+	av_dict_get_string(d, &buf, '=', ':');
+	if (buf && strlen(buf))
+		ret = buf;
+	av_freep(&buf);
+	return ret;
+}
+
+
 struct dictionary {
 	AVDictionary *d;
 
@@ -15,13 +28,12 @@ struct dictionary {
 		av_dict_parse_string(&d, options.c_str(), "=", ":", 0);
 	}
 	~dictionary() {
-		char *buf = nullptr;
+		std::string options = dictionary_to_string(d);
 
-		av_dict_get_string(d, &buf, '=', ':');
-		if (buf && strlen(buf))
+		if (!options.empty())
 			std::cerr << "Warning: unused options: "
-				  << buf << std::endl;
-		av_freep(&buf);
+				  << options << std::endl;
+
 		av_dict_free(&d);
 	}
 	AVDictionary **ptr() { return &d; }
