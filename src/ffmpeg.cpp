@@ -751,6 +751,8 @@ output::output(output &&o)
 output &output::operator=(output &&o)
 {
 	if (ctx != o.ctx) {
+		close();
+
 		ctx = o.ctx;
 		write_header = o.write_header;
 		write_trailer = o.write_trailer;
