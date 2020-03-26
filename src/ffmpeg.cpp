@@ -288,8 +288,8 @@ static AVCodecContext *ffmpeg_encoder_context(const std::string &codec_name,
 	return codec_ctx;
 free_context:
 	avcodec_free_context(&codec_ctx);
-	return nullptr;}
-
+	return nullptr;
+}
 
 namespace av {
 
