@@ -146,6 +146,7 @@ public:
 		    const std::string &options = "");
 
 	int64_t start_time_realtime() const;
+	AVRational avg_frame_rate(int index) const;
 	AVRational time_base(int index) const;
 
 	std::string metadata() const;
