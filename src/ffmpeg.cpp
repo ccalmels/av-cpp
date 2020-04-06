@@ -835,7 +835,7 @@ int output::add_stream(const input &in, int index)
 	return stream->id;
 }
 
-int output::write(AVPacket *packet)
+int output::write(AVPacket *packet, bool rescale)
 {
 	if (write_header) {
 		int ret;
@@ -850,10 +850,14 @@ int output::write(AVPacket *packet)
 		write_trailer = true;
 	}
 
-	assert((unsigned int)packet->stream_index < ctx->nb_streams);
+	if (rescale) {
+		int index = packet->stream_index;
 
-	av_packet_rescale_ts(packet, time_bases[packet->stream_index],
-			     ctx->streams[packet->stream_index]->time_base);
+		assert((unsigned int)index < ctx->nb_streams);
+
+		av_packet_rescale_ts(packet, time_bases[index], ctx->streams[index]->time_base);
+	}
+
 	packet->pos = -1;
 	return av_interleaved_write_frame(ctx, packet);
 }
@@ -861,6 +865,11 @@ int output::write(AVPacket *packet)
 bool output::operator<<(const packet &p)
 {
 	return !(write(p.p) < 0);
+}
+
+bool output::write_norescale(const packet &p)
+{
+	return !(write(p.p, false) < 0);
 }
 
 void output::add_metadata(const std::string &data)

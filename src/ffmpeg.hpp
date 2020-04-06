@@ -195,8 +195,9 @@ public:
 			   const std::string &options = "");
 	int add_stream(const input &in, int index);
 
-	int write(AVPacket *packet);
+	int write(AVPacket *packet, bool rescale = true);
 	bool operator<<(const packet &p);
+	bool write_norescale(const packet &p);
 
 	void add_metadata(const std::string &data);
 	void add_program_metadata(const std::string &data, int index);
