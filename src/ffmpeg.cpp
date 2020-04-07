@@ -861,7 +861,8 @@ int output::write(AVPacket *packet, bool rescale)
 
 		assert((unsigned int)index < ctx->nb_streams);
 
-		av_packet_rescale_ts(packet, time_bases[index], ctx->streams[index]->time_base);
+		av_packet_rescale_ts(packet, time_bases[index],
+				     ctx->streams[index]->time_base);
 	}
 
 	packet->pos = -1;
@@ -887,14 +888,16 @@ void output::add_program_metadata(const std::string &data, int index)
 {
 	assert((unsigned int)index < ctx->nb_programs);
 
-	av_dict_parse_string(&ctx->programs[index]->metadata, data.c_str(), "=", ":", 0);
+	av_dict_parse_string(&ctx->programs[index]->metadata,
+			     data.c_str(), "=", ":", 0);
 }
 
 void output::add_stream_metadata(const std::string &data, int index)
 {
 	assert((unsigned int)index < ctx->nb_streams);
 
-	av_dict_parse_string(&ctx->streams[index]->metadata, data.c_str(), "=", ":", 0);
+	av_dict_parse_string(&ctx->streams[index]->metadata,
+			     data.c_str(), "=", ":", 0);
 }
 
 void output::close()
