@@ -659,10 +659,16 @@ int64_t input::start_time_realtime() const
 	return ctx->start_time_realtime;
 }
 
-AVRational input::avg_frame_rate(int index) const
+AVRational input::frame_rate(int index) const
 {
 	assert((unsigned int)index < ctx->nb_streams);
-	return ctx->streams[index]->avg_frame_rate;
+
+	AVRational fps = ctx->streams[index]->avg_frame_rate;
+
+	if (fps.num != 0)
+		return fps;
+
+	return ctx->streams[index]->r_frame_rate;
 }
 
 AVRational input::time_base(int index) const
