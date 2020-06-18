@@ -45,6 +45,8 @@ struct frame {
 	bool is_hardware() const;
 	frame transfer(AVPixelFormat hint = AV_PIX_FMT_NONE) const;
 
+	friend std::ostream &operator<<(std::ostream &out, const frame& f);
+
 	AVFrame *f;
 };
 

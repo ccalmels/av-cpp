@@ -6,6 +6,7 @@
 
 extern "C" {
 #include <libavutil/opt.h>
+#include <libavutil/pixdesc.h>
 }
 
 static std::string dictionary_to_string(const AVDictionary *d)
@@ -392,6 +393,15 @@ frame frame::transfer(AVPixelFormat hint) const
 			return transfer();
 	}
 	return ret;
+}
+
+std::ostream &operator<<(std::ostream &out, const frame& f)
+{
+	out << "frame: "
+	    << f.f->width << "x" << f.f->height << " in "
+	    << av_get_pix_fmt_name((AVPixelFormat)f.f->format)
+	    << " pts: " << f.f->pts;
+	return out;
 }
 
 hw_frames::~hw_frames()
