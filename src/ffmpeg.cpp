@@ -371,6 +371,29 @@ frame &frame::operator=(frame &&o)
 	return *this;
 }
 
+bool frame::is_hardware() const
+{
+	return f->hw_frames_ctx;
+}
+
+frame frame::transfer(AVPixelFormat hint) const
+{
+	frame ret;
+
+	assert(is_hardware());
+
+	ret.f->format = hint;
+
+	if (av_hwframe_transfer_data(ret.f, f, 0)) {
+		std::cerr << "transfer to "<< av_get_pix_fmt_name(hint)
+			  << " fails" << std::endl;
+
+		if (ret.f->format != AV_PIX_FMT_NONE)
+			return transfer();
+	}
+	return ret;
+}
+
 hw_frames::~hw_frames()
 {
 	av_buffer_unref(&ctx);

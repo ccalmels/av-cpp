@@ -42,6 +42,9 @@ struct frame {
 	frame(frame &&o);
 	frame &operator=(frame &&o);
 
+	bool is_hardware() const;
+	frame transfer(AVPixelFormat hint = AV_PIX_FMT_NONE) const;
+
 	AVFrame *f;
 };
 
