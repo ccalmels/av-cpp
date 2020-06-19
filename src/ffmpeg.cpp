@@ -403,8 +403,7 @@ frame frame::transfer(AVPixelFormat hint) const
 
 std::ostream &operator<<(std::ostream &out, const frame& f)
 {
-	out << "frame: "
-	    << f.f->width << "x" << f.f->height << " in "
+	out << f.f->width << "x" << f.f->height << " in "
 	    << av_get_pix_fmt_name((AVPixelFormat)f.f->format)
 	    << " pts: " << f.f->pts;
 	return out;
