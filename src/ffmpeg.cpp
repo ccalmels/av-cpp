@@ -780,7 +780,7 @@ frame encoder::get_empty_frame()
 		f.f->width  = ctx->width;
 		f.f->height = ctx->height;
 
-		av_frame_get_buffer(f.f, 32);
+		av_frame_get_buffer(f.f, 0);
 	} else
 		av_hwframe_get_buffer(ctx->hw_frames_ctx, f.f, 0);
 

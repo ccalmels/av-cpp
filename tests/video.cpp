@@ -16,7 +16,7 @@ static void generate_frame(AVFrame *f, int index, int width, int height)
 		f->width = width;
 		f->height = height;
 		f->format = AV_PIX_FMT_YUV420P;
-		av_frame_get_buffer(f, 32);
+		av_frame_get_buffer(f, 0);
 	}
 
 	av_frame_make_writable(f);
