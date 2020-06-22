@@ -141,8 +141,8 @@ public:
 	int read(AVPacket *packet);
 	bool operator>>(packet &p);
 
-	int get_video_index(int id) const;
-	int get_audio_index(int id) const;
+	int get_video_index(int id = -1) const;
+	int get_audio_index(int id = -1) const;
 
 	decoder get(int index);
 	decoder get(int index, const std::string &codec_name,
