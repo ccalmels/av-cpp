@@ -21,9 +21,9 @@ import('pkgconfig').generate(name: meson.project_name(),
 			     version: meson.project_version(),
 			     libraries: lib)
 
-library_video_test = executable('library_video_test', 'src/video_test.cpp',
-				dependencies: avcpp_dep)
-test('library video test', library_video_test)
+video_test = executable('video_test', 'tests/video.cpp',
+			dependencies: avcpp_dep)
+test('video test', video_test)
 
 # examples
 
