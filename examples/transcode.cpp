@@ -39,10 +39,6 @@ int main(int argc, char *argv[])
 	if (!out.open(argv[2]))
 		return -1;
 
-	AVRational frame_rate = in.frame_rate(0);
-	std::string time_base = "time_base=" + std::to_string(frame_rate.den)
-		+ "/" + std::to_string(frame_rate.num);
-
 	av::packet p;
 	av::frame f;
 
@@ -55,7 +51,8 @@ int main(int argc, char *argv[])
 		while (dec >> f) {
 			if (!enc)
 				enc = out.add_stream(dec.get_hw_frames(),
-						     encoder, time_base);
+						     encoder,
+						     "time_base=" + av::to_string(in.frame_rate(0)));
 
 			f.f->pts = count++;
 			enc << f;
