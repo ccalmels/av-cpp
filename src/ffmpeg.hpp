@@ -8,6 +8,8 @@ extern "C" {
 
 namespace av {
 
+std::string to_string(const AVRational &r);
+
 class packet {
 public:
 	packet();
