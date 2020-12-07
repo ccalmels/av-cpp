@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 			if (!enc)
 				enc = out.add_stream(dec.get_hw_frames(),
 						     encoder,
-						     "time_base=" + av::to_string(in.frame_rate(0)));
+						     "time_base=" + av::to_string(av_inv_q(in.frame_rate(0))));
 
 			f.f->pts = count++;
 			enc << f;
