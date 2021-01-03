@@ -59,7 +59,6 @@ int main(int argc, char *argv[])
 
 			while (enc >> p)
 				out << p;
-
 		}
 	}
 

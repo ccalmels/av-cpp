@@ -21,7 +21,6 @@ static std::string dictionary_to_string(const AVDictionary *d)
 	return ret;
 }
 
-
 struct dictionary {
 	AVDictionary *d;
 
