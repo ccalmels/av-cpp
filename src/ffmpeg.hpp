@@ -6,6 +6,8 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
+struct SwsContext;
+
 namespace av {
 
 std::string to_string(const AVRational &r);
@@ -48,6 +50,22 @@ struct frame {
 	frame transfer(AVPixelFormat hint = AV_PIX_FMT_NONE) const;
 
 	friend std::ostream &operator<<(std::ostream &out, const frame& f);
+
+	class scaler {
+	public:
+		scaler(AVPixelFormat format, int width, int height);
+		scaler(AVPixelFormat format);
+		~scaler();
+
+		frame scale(const frame &f);
+	private:
+		scaler(const scaler &) = delete;
+		scaler &operator=(const scaler&) = delete;
+
+		SwsContext *ctx;
+		AVPixelFormat fmt, src_fmt;
+		int w, h, src_w, src_h;
+	};
 
 	AVFrame *f;
 };

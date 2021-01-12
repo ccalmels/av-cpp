@@ -7,6 +7,7 @@
 extern "C" {
 #include <libavutil/opt.h>
 #include <libavutil/pixdesc.h>
+#include <libswscale/swscale.h>
 }
 
 static std::string dictionary_to_string(const AVDictionary *d)
@@ -406,6 +407,48 @@ std::ostream &operator<<(std::ostream &out, const frame& f)
 	    << av_get_pix_fmt_name((AVPixelFormat)f.f->format)
 	    << " pts: " << f.f->pts;
 	return out;
+}
+
+frame::scaler::scaler(AVPixelFormat format, int width, int height)
+	: ctx(nullptr), fmt(format), w(width), h(height) {}
+frame::scaler::scaler(AVPixelFormat format)
+	: ctx(nullptr), fmt(format), w(0), h(0) {}
+frame::scaler::~scaler()
+{
+	sws_freeContext(ctx);
+}
+
+frame frame::scaler::scale(const frame &f) {
+	frame scaled;
+
+	scaled.f->width = w ? w : f.f->width;
+	scaled.f->height = h ? h : f.f->height;
+	scaled.f->format = fmt;
+	av_frame_get_buffer(scaled.f, 0);
+
+	if (ctx && (src_w != f.f->width ||
+		    src_h != f.f->height ||
+		    src_fmt != f.f->format)) {
+		sws_freeContext(ctx);
+		ctx = nullptr;
+	}
+	if (!ctx) {
+		src_w = f.f->width;
+		src_h = f.f->height;
+		src_fmt = (AVPixelFormat)f.f->format;
+
+		ctx = sws_getContext(
+			src_w, src_h, src_fmt,
+			scaled.f->width, scaled.f->height, fmt,
+			0, nullptr, nullptr, nullptr);
+
+		std::cerr << "sws context: "
+			  << f << " → " << scaled << std::endl;
+	}
+
+	sws_scale(ctx, f.f->data, f.f->linesize, 0, f.f->height,
+		  scaled.f->data, scaled.f->linesize);
+	return scaled;
 }
 
 hw_frames::~hw_frames()

@@ -3,7 +3,8 @@ project('av-cpp', 'cpp', default_options: [ 'cpp_std=c++14' ])
 deps = [ dependency('libavformat'),
 	 dependency('libavcodec'),
 	 dependency('libswresample'),
-	 dependency('libavutil') ]
+	 dependency('libavutil'),
+	 dependency('libswscale') ]
 
 lib = library('ffmpeg-cpp',
 	      sources: [ 'src/ffmpeg.hpp',
