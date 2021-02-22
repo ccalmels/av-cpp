@@ -22,12 +22,13 @@ import('pkgconfig').generate(name: meson.project_name(),
 			     version: meson.project_version(),
 			     libraries: lib)
 
+# tests
+catch2_dep = dependency('catch2', fallback: [ 'catch2', 'catch2_dep' ])
 video_test = executable('video_test', 'tests/video.cpp',
-			dependencies: avcpp_dep)
+			dependencies: [avcpp_dep, catch2_dep ])
 test('video test', video_test)
 
 # examples
-
 threads_dep = dependency('threads')
 
 executable('rtsp_muxer', 'examples/rtsp_muxer.cpp',
