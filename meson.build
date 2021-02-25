@@ -1,4 +1,8 @@
-project('av-cpp', 'cpp', default_options : [ 'cpp_std=c++17' ])
+project(
+  'av-cpp',
+  'cpp', default_options : [ 'cpp_std=c++17' ],
+  version : '0.1.0',
+)
 
 deps = [ dependency('libavformat'),
 	 dependency('libavcodec'),
