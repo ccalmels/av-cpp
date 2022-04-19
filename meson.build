@@ -16,8 +16,6 @@ lib = library('ffmpeg-cpp',
                 'src/ffmpeg.cpp'
               ], dependencies : deps, install: true)
 
-lib2 = declare_dependency
-
 avcpp_dep = declare_dependency(dependencies : deps,
                                include_directories : include_directories('src'),
                                link_with : lib)
