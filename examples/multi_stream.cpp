@@ -1,7 +1,7 @@
-#include <iostream>
-#include <vector>
 #include "ffmpeg.hpp"
 #include "packet_queue.hpp"
+#include <iostream>
+#include <vector>
 
 static void read_stream(packet_queue *q, av::decoder &&decoder)
 {
@@ -14,8 +14,9 @@ static void read_stream(packet_queue *q, av::decoder &&decoder)
 		decoder << p;
 
 		while (decoder >> f) {
-			std::cerr << "got frame "<< f.f->pts << " on stream: "
-				  << p.stream_index() << std::endl;
+			std::cerr << "got frame " << f.f->pts
+				  << " on stream: " << p.stream_index()
+				  << std::endl;
 		}
 	}
 
@@ -26,7 +27,7 @@ int main(int argc, char *argv[])
 {
 	av::input multi;
 	std::vector<std::thread> decoders;
-	std::vector<packet_queue*> queues;
+	std::vector<packet_queue *> queues;
 	av::packet p;
 
 	if (argc < 2) {
@@ -41,7 +42,8 @@ int main(int argc, char *argv[])
 	while (multi >> p) {
 		int index = p.stream_index();
 
-		std::cerr << "got packet on stream: " << p.stream_index() << std::endl;
+		std::cerr << "got packet on stream: " << p.stream_index()
+			  << std::endl;
 
 		if (index >= (int)decoders.size()) {
 			decoders.resize(index + 1);
@@ -51,8 +53,7 @@ int main(int argc, char *argv[])
 		if (!queues[index]) {
 			queues[index] = new packet_queue();
 			decoders[index] = std::thread(
-				read_stream, queues[index],
-				multi.get(index));
+			    read_stream, queues[index], multi.get(index));
 		}
 
 		queues[index]->release(p);
@@ -60,10 +61,10 @@ int main(int argc, char *argv[])
 
 	std::cerr << "finished" << std::endl;
 
-	for (auto p: queues)
+	for (auto p : queues)
 		p->close();
 
-	for (auto &d: decoders)
+	for (auto &d : decoders)
 		d.join();
 
 	return 0;

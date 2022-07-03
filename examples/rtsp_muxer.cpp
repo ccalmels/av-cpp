@@ -1,11 +1,11 @@
-#include <string>
-#include <vector>
-#include <list>
-#include <thread>
 #include <atomic>
-#include <mutex>
 #include <condition_variable>
 #include <iostream>
+#include <list>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <vector>
 
 #include "ffmpeg.hpp"
 #include "packet_queue.hpp"
@@ -13,8 +13,8 @@
 static void read_stream_delta(av::input &in, packet_queue &q, int stream_index,
 			      int64_t delta)
 {
-        std::cerr << "got delta: " << delta << " on stream "
-		  << stream_index << std::endl;
+	std::cerr << "got delta: " << delta << " on stream " << stream_index
+		  << std::endl;
 
 	while (!q.is_closed()) {
 		av::packet p = q.acquire();
@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 	q.close();
 
 	for (size_t i = 0; i < reads.size(); i++)
-                reads[i].join();
+		reads[i].join();
 
 	return 0;
 }

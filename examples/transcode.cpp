@@ -1,5 +1,5 @@
-#include <iostream>
 #include "ffmpeg.hpp"
+#include <iostream>
 
 int main(int argc, char *argv[])
 {
@@ -17,8 +17,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (argc < 3) {
-		std::cerr << "Usage: " << argv[0]
-			  << " <input> <output>"
+		std::cerr << "Usage: " << argv[0] << " <input> <output>"
 			  << std::endl;
 		return -1;
 	}
@@ -50,9 +49,10 @@ int main(int argc, char *argv[])
 
 		while (dec >> f) {
 			if (!enc)
-				enc = out.add_stream(dec.get_hw_frames(),
-						     encoder,
-						     "time_base=" + av::to_string(av_inv_q(in.frame_rate(0))));
+				enc = out.add_stream(
+				    dec.get_hw_frames(), encoder,
+				    "time_base=" + av::to_string(av_inv_q(
+						       in.frame_rate(0))));
 
 			f.f->pts = count++;
 			enc << f;

@@ -8,11 +8,13 @@ extern "C" {
 
 struct SwsContext;
 
-namespace av {
+namespace av
+{
 
 std::string to_string(const AVRational &r);
 
-class packet {
+class packet
+{
 public:
 	packet();
 	~packet();
@@ -32,6 +34,7 @@ public:
 	friend class output;
 	friend class encoder;
 	friend class decoder;
+
 private:
 	AVPacket *p;
 };
@@ -49,18 +52,20 @@ struct frame {
 	bool is_hardware() const;
 	frame transfer(AVPixelFormat hint = AV_PIX_FMT_NONE) const;
 
-	friend std::ostream &operator<<(std::ostream &out, const frame& f);
+	friend std::ostream &operator<<(std::ostream &out, const frame &f);
 
-	class scaler {
+	class scaler
+	{
 	public:
 		scaler(AVPixelFormat format, int width, int height);
 		scaler(AVPixelFormat format);
 		~scaler();
 
 		frame scale(const frame &f);
+
 	private:
 		scaler(const scaler &) = delete;
-		scaler &operator=(const scaler&) = delete;
+		scaler &operator=(const scaler &) = delete;
 
 		SwsContext *ctx;
 		AVPixelFormat fmt, src_fmt;
@@ -70,7 +75,8 @@ struct frame {
 	AVFrame *f;
 };
 
-class hw_frames {
+class hw_frames
+{
 public:
 	hw_frames() : ctx(nullptr) {}
 	~hw_frames();
@@ -86,13 +92,15 @@ public:
 	friend class hw_device;
 	friend class output;
 	friend class decoder;
+
 private:
 	AVBufferRef *ctx;
 };
 
-class hw_device {
+class hw_device
+{
 public:
-	hw_device() : ctx(nullptr) {}
+	hw_device() : ctx(nullptr), type(AV_HWDEVICE_TYPE_NONE) {}
 	hw_device(const std::string &name, const std::string &device = "");
 	~hw_device();
 
@@ -107,12 +115,14 @@ public:
 	hw_frames get_hw_frames(AVPixelFormat sw_format, int width, int height);
 
 	friend class input;
+
 private:
 	AVBufferRef *ctx;
 	enum AVHWDeviceType type;
 };
 
-class codec {
+class codec
+{
 public:
 	codec();
 	~codec();
@@ -121,8 +131,10 @@ public:
 	codec &operator=(codec &&o);
 
 	bool operator!();
+
 protected:
 	AVCodecContext *ctx;
+
 private:
 	codec(const codec &) = delete;
 	codec &operator=(const codec &) = delete;
@@ -130,7 +142,8 @@ private:
 	void drop();
 };
 
-class decoder : public codec {
+class decoder : public codec
+{
 public:
 	bool send(const AVPacket *packet);
 	bool flush();
@@ -144,7 +157,8 @@ public:
 	friend class input;
 };
 
-class input {
+class input
+{
 public:
 	input() : ctx(nullptr) {}
 	~input() { close(); }
@@ -179,6 +193,7 @@ public:
 	std::string stream_metadata(int index) const;
 
 	friend class output;
+
 private:
 	input(const input &) = delete;
 	input &operator=(const input &) = delete;
@@ -188,8 +203,11 @@ private:
 	AVFormatContext *ctx;
 };
 
-class encoder : public codec {
+class encoder : public codec
+{
 public:
+	encoder() : stream_index(-1) {}
+
 	bool send(const AVFrame *frame);
 	bool flush();
 	bool receive(AVPacket *packet);
@@ -200,13 +218,15 @@ public:
 	frame get_empty_frame();
 
 	friend class output;
+
 private:
 	int stream_index;
 };
 
-class output {
+class output
+{
 public:
-	output(): ctx(nullptr), write_header(false), write_trailer(false) {}
+	output() : ctx(nullptr), write_header(false), write_trailer(false) {}
 	~output() { close(); }
 
 	output(output &&o);
@@ -216,8 +236,7 @@ public:
 
 	encoder add_stream(const std::string &codec,
 			   const std::string &options = "");
-	encoder add_stream(const hw_frames &frames,
-			   const std::string &codec,
+	encoder add_stream(const hw_frames &frames, const std::string &codec,
 			   const std::string &options = "");
 	int add_stream(const input &in, int index);
 
@@ -228,6 +247,7 @@ public:
 	void add_metadata(const std::string &data);
 	void add_program_metadata(const std::string &data, int index);
 	void add_stream_metadata(const std::string &data, int index);
+
 private:
 	output(const output &) = delete;
 	output &operator=(const output &) = delete;
@@ -239,4 +259,4 @@ private:
 	std::vector<AVRational> time_bases;
 };
 
-}
+} // namespace av

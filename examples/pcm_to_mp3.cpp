@@ -1,5 +1,5 @@
-#include <iostream>
 #include "ffmpeg.hpp"
+#include <iostream>
 
 int main(int argc, char *argv[])
 {
@@ -24,8 +24,8 @@ int main(int argc, char *argv[])
 		return -1;
 
 	av::encoder mp3_encoder = mp3.add_stream(
-		"libmp3lame",
-		"time_base=1/32000:ar=32000:ac=1:request_sample_fmt=s16");
+	    "libmp3lame",
+	    "time_base=1/32000:ar=32000:ac=1:request_sample_fmt=s16");
 	if (!mp3_encoder)
 		return -1;
 

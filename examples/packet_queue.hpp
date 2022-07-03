@@ -1,11 +1,12 @@
-#include <list>
-#include <thread>
-#include <mutex>
-#include <condition_variable>
 #include "ffmpeg.hpp"
+#include <condition_variable>
+#include <list>
+#include <mutex>
+#include <thread>
 
 struct packet_queue {
-	av::packet acquire() {
+	av::packet acquire()
+	{
 		std::lock_guard<std::mutex> l(m);
 
 		if (!empty_packets.empty()) {
@@ -17,7 +18,8 @@ struct packet_queue {
 		return av::packet();
 	}
 
-	void release(av::packet &p) {
+	void release(av::packet &p)
+	{
 		{
 			std::lock_guard<std::mutex> l(m);
 
@@ -26,7 +28,8 @@ struct packet_queue {
 		cv.notify_one();
 	}
 
-	av::packet dequeue() {
+	av::packet dequeue()
+	{
 		std::unique_lock<std::mutex> l(m);
 		av::packet p;
 
@@ -43,19 +46,22 @@ struct packet_queue {
 		return p;
 	}
 
-	void enqueue(av::packet &p) {
+	void enqueue(av::packet &p)
+	{
 		std::lock_guard<std::mutex> l(m);
 
 		empty_packets.push_back(p);
 	}
 
-	bool is_closed() {
+	bool is_closed()
+	{
 		std::lock_guard<std::mutex> l(m);
 
 		return closed && filled_packets.empty();
 	}
 
-	void close(bool immediately = false) {
+	void close(bool immediately = false)
+	{
 		{
 			std::lock_guard<std::mutex> l(m);
 
@@ -73,4 +79,3 @@ struct packet_queue {
 	std::list<av::packet> filled_packets;
 	std::list<av::packet> empty_packets;
 };
-

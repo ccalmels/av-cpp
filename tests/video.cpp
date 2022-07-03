@@ -21,18 +21,19 @@ static void generate_frame(AVFrame *f, int index, int width, int height)
 
 	av_frame_make_writable(f);
 
-        /* Y */
-        for (y = 0; y < height; y++)
-                for (x = 0; x < width; x++)
-                        f->data[0][y * f->linesize[0] + x] = x + y + index * 3;
+	/* Y */
+	for (y = 0; y < height; y++)
+		for (x = 0; x < width; x++)
+			f->data[0][y * f->linesize[0] + x] = x + y + index * 3;
 
-        /* Cb and Cr */
-        for (y = 0; y < height / 2; y++) {
-                for (x = 0; x < width / 2; x++) {
-                        f->data[1][y * f->linesize[1] + x] = 128 + y + index * 2;
-                        f->data[2][y * f->linesize[2] + x] = 64 + x + index * 5;
-                }
-        }
+	/* Cb and Cr */
+	for (y = 0; y < height / 2; y++) {
+		for (x = 0; x < width / 2; x++) {
+			f->data[1][y * f->linesize[1] + x] =
+			    128 + y + index * 2;
+			f->data[2][y * f->linesize[2] + x] = 64 + x + index * 5;
+		}
+	}
 
 	f->pts = index;
 }
@@ -45,18 +46,14 @@ TEST_CASE("Encoding video using software encoder", "[encoding][software]")
 	av::frame f;
 	av::packet p;
 
-	SECTION("h264 encoding") {
-		encoder_name = "libx264";
-	}
-	SECTION("hevc encoding") {
-		encoder_name = "libx265";
-	}
+	SECTION("h264 encoding") { encoder_name = "libx264"; }
+	SECTION("hevc encoding") { encoder_name = "libx265"; }
 
 	REQUIRE(generated.open("/tmp/test." + encoder_name + ".mkv"));
 
 	encode_video = generated.add_stream(
-		encoder_name,
-		"video_size=960x540:pixel_format=yuv420p:time_base=1/25");
+	    encoder_name,
+	    "video_size=960x540:pixel_format=yuv420p:time_base=1/25");
 	REQUIRE(!!encode_video);
 
 	f = encode_video.get_empty_frame();
@@ -96,9 +93,7 @@ TEST_CASE("HW encoding using HW frames", "[encoding][hwaccel]")
 	av::hw_frames frames = hw.get_hw_frames(hw_format, width, height);
 	REQUIRE(!!frames);
 
-	SECTION("h264 encoding") {
-		encoder_name = "h264_" + hw_name;
-	}
+	SECTION("h264 encoding") { encoder_name = "h264_" + hw_name; }
 	SECTION("hevc encoding") {
 		encoder_name = "hevc_" + hw_name;
 	}
@@ -149,9 +144,7 @@ TEST_CASE("HW Decoding video", "[decoding][hwaccel]")
 	av::packet p;
 	int count = NB_FRAMES;
 
-	SECTION("h264 decoding") {
-		filename = "/tmp/test.libx264.mkv";
-	}
+	SECTION("h264 decoding") { filename = "/tmp/test.libx264.mkv"; }
 #if 0
 	SECTION("hevc decoding") {
 		filename = "/tmp/test.libx265.mkv";
@@ -189,12 +182,8 @@ TEST_CASE("Software Decoding video", "[decoding][software]")
 	av::packet p;
 	int count = NB_FRAMES;
 
-	SECTION("h264 decoding") {
-		filename = "/tmp/test.libx264.mkv";
-	}
-	SECTION("hevc decoding") {
-		filename = "/tmp/test.libx265.mkv";
-	}
+	SECTION("h264 decoding") { filename = "/tmp/test.libx264.mkv"; }
+	SECTION("hevc decoding") { filename = "/tmp/test.libx265.mkv"; }
 
 	REQUIRE(video.open(filename));
 
@@ -235,8 +224,8 @@ TEST_CASE("Metadata handling", "[metadata]")
 	generated.add_metadata(metadata);
 
 	encode_video = generated.add_stream(
-		encoder_name,
-		"video_size=960x540:pixel_format=yuv420p:time_base=1/25");
+	    encoder_name,
+	    "video_size=960x540:pixel_format=yuv420p:time_base=1/25");
 	REQUIRE(!!encode_video);
 
 	f = encode_video.get_empty_frame();
