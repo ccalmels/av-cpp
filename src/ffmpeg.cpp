@@ -5,6 +5,7 @@
 #include <map>
 
 extern "C" {
+#include <libavcodec/avcodec.h>
 #include <libavutil/opt.h>
 #include <libavutil/pixdesc.h>
 #include <libswscale/swscale.h>
@@ -45,7 +46,7 @@ static AVFormatContext *ffmpeg_input_format_context(const std::string &uri,
 						    const std::string &options)
 {
 	AVFormatContext *fmt_ctx = nullptr;
-	AVInputFormat *ifmt = nullptr;
+	const AVInputFormat *ifmt = nullptr;
 	int ret;
 
 	if (!format.empty()) {
@@ -78,7 +79,7 @@ static AVFormatContext *ffmpeg_input_format_context(const std::string &uri,
 static AVFormatContext *ffmpeg_output_format_context(const std::string &uri)
 {
 	AVFormatContext *format_ctx = nullptr;
-	AVOutputFormat *oformat = nullptr;
+	const AVOutputFormat *oformat = nullptr;
 	const char *ofmt = nullptr;
 
 	oformat = av_guess_format(nullptr, uri.c_str(), nullptr);
@@ -196,7 +197,7 @@ static AVCodecContext *ffmpeg_decoder_context(const std::string &codec_name,
 					      enum AVHWDeviceType type,
 					      const std::string &options)
 {
-	AVCodec *codec = nullptr;
+	const AVCodec *codec = nullptr;
 	AVCodecContext *codec_ctx = nullptr;
 	int ret;
 
@@ -242,7 +243,7 @@ static AVCodecContext *ffmpeg_encoder_context(const std::string &codec_name,
 					      bool global_header,
 					      AVBufferRef *hw_frames_ref)
 {
-	AVCodec *codec = nullptr;
+	const AVCodec *codec = nullptr;
 	AVCodecContext *codec_ctx = nullptr;
 
 	codec = avcodec_find_encoder_by_name(codec_name.c_str());
