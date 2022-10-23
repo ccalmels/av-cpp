@@ -227,9 +227,8 @@ static AVCodecContext *ffmpeg_decoder_context(const std::string &codec_name,
 	if (hw_device_ctx)
 		ffmpeg_hw_device_setup(codec_ctx, hw_device_ctx, type);
 
-	ret = avcodec_open2(
-	    codec_ctx, codec,
-	    dictionary(std::string("refcounted_frames=1:") + options).ptr());
+	ret = avcodec_open2(codec_ctx, codec,
+			    dictionary(options).ptr());
 	if (ret < 0)
 		goto free_context;
 
