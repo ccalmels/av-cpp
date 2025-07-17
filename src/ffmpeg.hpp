@@ -1,4 +1,5 @@
 #pragma once
+#include <fmt/ostream.h>
 #include <string>
 #include <vector>
 
@@ -261,3 +262,6 @@ private:
 };
 
 } // namespace av
+
+template <> struct fmt::formatter<av::frame> : ostream_formatter {
+};

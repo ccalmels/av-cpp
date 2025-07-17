@@ -8,11 +8,14 @@ project(
   version : '0.1.0',
 )
 
-deps = [ dependency('libavformat'),
-         dependency('libavcodec'),
-         dependency('libswresample'),
-         dependency('libavutil'),
-         dependency('libswscale') ]
+deps = [
+  dependency('libavformat'),
+  dependency('libavcodec'),
+  dependency('libswresample'),
+  dependency('libavutil'),
+  dependency('libswscale'),
+  dependency('fmt'),
+]
 
 lib = library('ffmpeg-cpp',
               sources : [

@@ -1,8 +1,8 @@
 #include "ffmpeg.hpp"
 #include <cassert>
+#include <fmt/core.h>
 #include <iostream>
 #include <map>
-#include <sstream>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -35,8 +35,8 @@ struct dictionary {
 		std::string options = dictionary_to_string(d);
 
 		if (!options.empty())
-			std::cerr << "Warning: unused options: " << options
-				  << std::endl;
+			fmt::print(stderr, "Warning: unused options: {}\n",
+				   options);
 
 		av_dict_free(&d);
 	}
@@ -54,8 +54,8 @@ static AVFormatContext *ffmpeg_input_format_context(const std::string &uri,
 	if (!format.empty()) {
 		ifmt = av_find_input_format(format.c_str());
 		if (!ifmt) {
-			std::cerr << "Cannot find input format '" << format
-				  << "'" << std::endl;
+			fmt::print(stderr, "Cannont find input format '{}'\n",
+				   format);
 			return nullptr;
 		}
 	}
@@ -63,13 +63,12 @@ static AVFormatContext *ffmpeg_input_format_context(const std::string &uri,
 	ret = avformat_open_input(&fmt_ctx, uri.c_str(), ifmt,
 				  dictionary(options).ptr());
 	if (ret) {
-		std::cerr << "Cannot open input file '" << uri << "'"
-			  << std::endl;
+		fmt::print(stderr, "Cannot open input file '{}'\n", uri);
 		return nullptr;
 	}
 
 	if (avformat_find_stream_info(fmt_ctx, NULL) < 0) {
-		std::cerr << "Cannot find input stream infos" << std::endl;
+		fmt::print(stderr, "Cannot find input stream infos\n");
 		avformat_close_input(&fmt_ctx);
 		return nullptr;
 	}
@@ -87,13 +86,15 @@ static AVFormatContext *ffmpeg_output_format_context(const std::string &uri)
 	oformat = av_guess_format(nullptr, uri.c_str(), nullptr);
 	if (!oformat) {
 		ofmt = "mpegts";
-		std::cerr << "output format not found for '" << uri
-			  << "' using " << ofmt << " by default" << std::endl;
+		fmt::print(
+		    stderr,
+		    "output format not found for '{}' using {} by default\n",
+		    uri, ofmt);
 	}
 
 	if (avformat_alloc_output_context2(&format_ctx, oformat, ofmt,
 					   uri.c_str()) < 0) {
-		std::cerr << "failed to allocate an output format" << std::endl;
+		fmt::print(stderr, "failed to allocate an output format\n");
 		return nullptr;
 	}
 
@@ -111,9 +112,8 @@ static AVBufferRef *ffmpeg_hw_context(enum AVHWDeviceType type,
 
 	if (av_hwdevice_ctx_create(&hw_device_ctx, type, device_name, nullptr,
 				   0) < 0) {
-		std::cerr << "fail to create "
-			  << av_hwdevice_get_type_name(type) << " HW device"
-			  << std::endl;
+		fmt::print(stderr, "fail to create {} HW device\n",
+			   av_hwdevice_get_type_name(type));
 		return nullptr;
 	}
 
@@ -130,10 +130,10 @@ static void ffmpeg_hw_device_setup(AVCodecContext *ctx,
 	for (int i = 0;; i++) {
 		const AVCodecHWConfig *config = avcodec_get_hw_config(codec, i);
 		if (!config) {
-			std::cerr << "decoder " << codec->name
-				  << " does not support device type "
-				  << av_hwdevice_get_type_name(type)
-				  << std::endl;
+			fmt::print(
+			    stderr,
+			    "decoder {} does not support device type {}\n",
+			    codec->name, av_hwdevice_get_type_name(type));
 			return;
 		}
 		if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX &&
@@ -152,7 +152,7 @@ static void ffmpeg_hw_device_setup(AVCodecContext *ctx,
 			if (*p == hw_maps[ctx])
 				return *p;
 
-		std::cerr << "Failed to get HW pixel format." << std::endl;
+		fmt::print(stderr, "Failed to get HW pixel format.\n");
 		return AV_PIX_FMT_NONE;
 	};
 }
@@ -210,11 +210,11 @@ static AVCodecContext *ffmpeg_decoder_context(const std::string &codec_name,
 	if (!codec)
 		return nullptr;
 
-	std::cerr << "Using decoder '" << codec->long_name << "'";
+	fmt::print(stderr, "Using decoder '{}'", codec->long_name);
 	if (hw_device_ctx)
-		std::cerr << " with '" << av_hwdevice_get_type_name(type)
-			  << "' HW accel";
-	std::cerr << std::endl;
+		fmt::print(stderr, " with '{}' HW accel",
+			   av_hwdevice_get_type_name(type));
+	fmt::print(stderr, "\n");
 
 	codec_ctx = avcodec_alloc_context3(codec);
 	if (!codec_ctx)
@@ -227,8 +227,7 @@ static AVCodecContext *ffmpeg_decoder_context(const std::string &codec_name,
 	if (hw_device_ctx)
 		ffmpeg_hw_device_setup(codec_ctx, hw_device_ctx, type);
 
-	ret = avcodec_open2(codec_ctx, codec,
-			    dictionary(options).ptr());
+	ret = avcodec_open2(codec_ctx, codec, dictionary(options).ptr());
 	if (ret < 0)
 		goto free_context;
 
@@ -251,7 +250,7 @@ static AVCodecContext *ffmpeg_encoder_context(const std::string &codec_name,
 	if (!codec)
 		return nullptr;
 
-	std::cerr << "Using encoder '" << codec->long_name << "'" << std::endl;
+	fmt::print(stderr, "Using encoder '{}'\n", codec->long_name);
 
 	codec_ctx = avcodec_alloc_context3(codec);
 	if (!codec_ctx)
@@ -279,12 +278,12 @@ static AVCodecContext *ffmpeg_encoder_context(const std::string &codec_name,
 	}
 
 	if (avcodec_open2(codec_ctx, codec_ctx->codec, nullptr) < 0) {
-		std::cerr << "avcodec_open2 fails" << std::endl;
+		fmt::print(stderr, "avcodec_open2 fails\n");
 		goto free_context;
 	}
 
 	if (avcodec_parameters_from_context(params, codec_ctx) < 0) {
-		std::cerr << "can't copy the stream parameters" << std::endl;
+		fmt::print(stderr, "can't copy the stream parameters\n");
 		goto free_context;
 	}
 
@@ -385,8 +384,8 @@ frame frame::transfer(AVPixelFormat hint) const
 	ret.f->format = hint;
 
 	if (av_hwframe_transfer_data(ret.f, f, 0)) {
-		std::cerr << "transfer to " << av_get_pix_fmt_name(hint)
-			  << " fails" << std::endl;
+		fmt::print(stderr, "transfer to {} fails\n",
+			   av_get_pix_fmt_name(hint));
 
 		if (ret.f->format != AV_PIX_FMT_NONE)
 			return transfer();
@@ -435,8 +434,7 @@ frame frame::scaler::scale(const frame &f)
 				     scaled.f->height, fmt, 0, nullptr, nullptr,
 				     nullptr);
 
-		std::cerr << "sws context: " << f << " → " << scaled
-			  << std::endl;
+		fmt::print(stderr, "sws context: {} → {}\n", f, scaled);
 	}
 
 	sws_scale(ctx, f.f->data, f.f->linesize, 0, f.f->height, scaled.f->data,
@@ -486,8 +484,7 @@ hw_device::hw_device(const std::string &name, const std::string &device)
 {
 	type = av_hwdevice_find_type_by_name(name.c_str());
 	if (type == AV_HWDEVICE_TYPE_NONE) {
-		std::cerr << "HW device " << name << " not supported"
-			  << std::endl;
+		fmt::print(stderr, "HW device {} not supported\n", name);
 		ctx = nullptr;
 	} else
 		ctx = ffmpeg_hw_context(type, device);
@@ -836,7 +833,7 @@ encoder output::add_stream(const hw_frames &frames, const std::string &codec,
 
 	stream = avformat_new_stream(ctx, nullptr);
 	if (!stream) {
-		std::cerr << "avformat_new_stream fails" << std::endl;
+		fmt::print(stderr, "avformat_new_stream fails\n");
 		return enc;
 	}
 
@@ -859,13 +856,13 @@ int output::add_stream(const input &in, int index)
 
 	stream = avformat_new_stream(ctx, nullptr);
 	if (!stream) {
-		std::cerr << "avformat_new_stream fails" << std::endl;
+		fmt::print(stderr, "avformat_new_stream fails\n");
 		return -1;
 	}
 
 	if (avcodec_parameters_copy(stream->codecpar,
 				    in.ctx->streams[index]->codecpar) < 0) {
-		std::cerr << "Failed to copy codec parameters" << std::endl;
+		fmt::print(stderr, "Failed to copy codec parameters\n");
 		return -1;
 	}
 	stream->codecpar->codec_tag = 0;
