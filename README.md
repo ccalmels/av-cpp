@@ -12,8 +12,8 @@ Dependencies:
 Meson build system is used:
 
 ```console
-$ meson build
-$ ninja -C build test
+$ meson setup build
+$ meson test -C build
 ```
 
 ## Usage
