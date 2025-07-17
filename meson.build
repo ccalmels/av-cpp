@@ -1,6 +1,10 @@
 project(
   'av-cpp',
-  'cpp', default_options : [ 'cpp_std=c++17' ],
+  'cpp', default_options : [
+    'cpp_std=c++20',
+    'warning_level=3',
+    'werror=true',
+  ],
   version : '0.1.0',
 )
 
