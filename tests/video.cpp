@@ -47,6 +47,7 @@ TEST_CASE("Encoding video using software encoder", "[encoding][software]")
 
 	SECTION("h264 encoding") { encoder_name = "libx264"; }
 	SECTION("hevc encoding") { encoder_name = "libx265"; }
+	SECTION("av1 encoding") { encoder_name = "librav1e"; }
 
 	REQUIRE(generated.open("/tmp/test." + encoder_name + ".mkv"));
 
@@ -93,13 +94,12 @@ TEST_CASE("HW encoding using HW frames", "[encoding][hwaccel]")
 	REQUIRE(!!frames);
 
 	SECTION("h264 encoding") { encoder_name = "h264_" + hw_name; }
-	SECTION("hevc encoding") {
-		encoder_name = "hevc_" + hw_name;
-	}
+	SECTION("hevc encoding") { encoder_name = "hevc_" + hw_name; }
+	SECTION("av1 encoding") { encoder_name = "av1_" + hw_name; }
 
 	av::output video;
 
-	REQUIRE(video.open("/tmp/test." + encoder_name + ".hw.mp4"));
+	REQUIRE(video.open("/tmp/test." + encoder_name + ".hw.mkv"));
 
 	av::encoder encoder;
 	encoder = video.add_stream(frames, encoder_name, "time_base=1/25");
@@ -144,11 +144,7 @@ TEST_CASE("HW Decoding video", "[decoding][hwaccel]")
 	int count = NB_FRAMES;
 
 	SECTION("h264 decoding") { filename = "/tmp/test.libx264.mkv"; }
-#if 0
-	SECTION("hevc decoding") {
-		filename = "/tmp/test.libx265.mkv";
-	}
-#endif
+	SECTION("hevc decoding") { filename = "/tmp/test.libx265.mkv"; }
 	REQUIRE(video.open(filename));
 
 	stream0_decoder = video.get(hw_accel, 0);
