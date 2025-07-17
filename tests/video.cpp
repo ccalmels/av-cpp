@@ -109,10 +109,10 @@ TEST_CASE("HW encoding using HW frames", "[encoding][hwaccel]")
 	av::packet p;
 	av::frame f, hw_f;
 
-	hw_f = encoder.get_empty_frame();
-
 	for (int i = 0; i < NB_FRAMES; i++) {
 		generate_frame(f.f, i, width, height);
+
+		hw_f = encoder.get_empty_frame();
 
 		REQUIRE(av_hwframe_transfer_data(hw_f.f, f.f, 0) >= 0);
 
