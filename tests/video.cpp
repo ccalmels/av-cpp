@@ -1,7 +1,6 @@
-#include "ffmpeg.hpp"
+#include <catch2/catch_test_macros.hpp>
 
-#define CATCH_CONFIG_MAIN
-#include <catch2/catch.hpp>
+#include "ffmpeg.hpp"
 
 #define NB_FRAMES 100
 

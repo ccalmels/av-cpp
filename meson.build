@@ -28,7 +28,7 @@ import('pkgconfig').generate(name : meson.project_name(),
                              libraries : lib)
 
 # tests
-catch2_dep = dependency('catch2', fallback : [ 'catch2', 'catch2_dep' ])
+catch2_dep = dependency('catch2-with-main')
 video_test = executable('video_test', 'tests/video.cpp',
                         dependencies : [ avcpp_dep, catch2_dep ])
 test('video test', video_test)
