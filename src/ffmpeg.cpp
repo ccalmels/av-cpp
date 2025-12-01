@@ -298,7 +298,7 @@ namespace av
 
 std::string to_string(const AVRational &r)
 {
-	return std::to_string(r.num) + '/' + std::to_string(r.den);
+	return fmt::format("{:d}/{:d}", r.num, r.den);
 }
 
 packet::packet() : p(av_packet_alloc()) {}
